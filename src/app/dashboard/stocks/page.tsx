@@ -94,12 +94,13 @@ export default function StocksPage() {
   const [cashAccount, setCashAccount] = useState<CashAccount>({ balance: 0 });
   
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"portfolio" | "dividends" | "history" | "fees">("portfolio");
+  const [activeTab, setActiveTab] = useState<"portfolio" | "dividends" | "history" | "fees" | "psx-symbols">("portfolio");
   const [showBuyForm, setShowBuyForm] = useState(false);
   const [showSellForm, setShowSellForm] = useState(false);
   const [showDividendForm, setShowDividendForm] = useState(false);
   const [showCashForm, setShowCashForm] = useState(false);
   const [showFeeForm, setShowFeeForm] = useState(false);
+  const [showPSXSymbolForm, setShowPSXSymbolForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [buyForm, setBuyForm] = useState({
@@ -133,6 +134,13 @@ export default function StocksPage() {
     amount: "",
     description: "",
     fee_date: new Date().toISOString().split("T")[0],
+  });
+
+  const [psxSymbolForm, setPsxSymbolForm] = useState({
+    symbol: "",
+    company_name: "",
+    sector: "",
+    current_price: "",
   });
 
   useEffect(() => {
@@ -356,6 +364,44 @@ export default function StocksPage() {
     }
   };
 
+  const handleAddPSXSymbol = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const response = await fetch("/api/psx-stocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: psxSymbolForm.symbol.toUpperCase(),
+          company_name: psxSymbolForm.company_name,
+          sector: psxSymbolForm.sector || null,
+          current_price: psxSymbolForm.current_price ? parseFloat(psxSymbolForm.current_price) : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to add PSX symbol");
+      }
+
+      alert(`Successfully added ${psxSymbolForm.symbol.toUpperCase()} to PSX symbols!`);
+      setPsxSymbolForm({
+        symbol: "",
+        company_name: "",
+        sector: "",
+        current_price: "",
+      });
+      setShowPSXSymbolForm(false);
+      await loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to add PSX symbol");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -532,6 +578,16 @@ export default function StocksPage() {
             }`}
           >
             Trading Fees
+          </button>
+          <button
+            onClick={() => setActiveTab("psx-symbols")}
+            className={`px-6 py-2 rounded-lg font-medium transition ${
+              activeTab === "psx-symbols"
+                ? "bg-blue-500 text-white"
+                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+            }`}
+          >
+            PSX Symbols
           </button>
         </div>
 
@@ -1345,6 +1401,142 @@ export default function StocksPage() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* PSX Symbols Tab */}
+        {activeTab === "psx-symbols" && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <div className="p-4 rounded-lg border border-blue-500/30 bg-blue-900/20">
+                <p className="text-sm text-slate-400">Total PSX Symbols</p>
+                <p className="text-2xl font-bold text-blue-400">{psxStocks.length}</p>
+              </div>
+              <button
+                onClick={() => setShowPSXSymbolForm(!showPSXSymbolForm)}
+                className="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Add PSX Symbol
+              </button>
+            </div>
+
+            {/* Add PSX Symbol Form */}
+            {showPSXSymbolForm && (
+              <div className="mb-6 p-6 rounded-lg border border-blue-500/50 bg-slate-800/50 backdrop-blur-sm">
+                <h2 className="text-xl font-bold mb-4 text-white">Add New PSX Symbol</h2>
+                <form onSubmit={handleAddPSXSymbol} className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Symbol *</label>
+                      <input
+                        type="text"
+                        required
+                        value={psxSymbolForm.symbol}
+                        onChange={(e) => setPsxSymbolForm({ ...psxSymbolForm, symbol: e.target.value.toUpperCase() })}
+                        className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500 uppercase"
+                        placeholder="e.g., ABCD"
+                        maxLength={10}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Company Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={psxSymbolForm.company_name}
+                        onChange={(e) => setPsxSymbolForm({ ...psxSymbolForm, company_name: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
+                        placeholder="e.g., ABC Limited"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Sector</label>
+                      <input
+                        type="text"
+                        value={psxSymbolForm.sector}
+                        onChange={(e) => setPsxSymbolForm({ ...psxSymbolForm, sector: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
+                        placeholder="e.g., Banking, Technology, Oil & Gas"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Current Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={psxSymbolForm.current_price}
+                        onChange={(e) => setPsxSymbolForm({ ...psxSymbolForm, current_price: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
+                        placeholder="Enter price"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 py-2 px-4 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white font-medium transition"
+                    >
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Add Symbol"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPSXSymbolForm(false)}
+                      className="px-6 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* PSX Symbols List */}
+            <div className="p-6 rounded-lg border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
+              <h2 className="text-xl font-bold mb-4 text-white">Available PSX Symbols</h2>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                </div>
+              ) : psxStocks.length === 0 ? (
+                <p className="text-slate-400 text-center py-8">No PSX symbols available.</p>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {psxStocks.map((stock) => (
+                    <div
+                      key={stock.symbol}
+                      className="p-4 rounded-lg bg-slate-900/50 border border-slate-700/50 hover:bg-slate-900/70 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-white text-lg">{stock.symbol}</h3>
+                          <p className="text-slate-400 text-sm mt-1">{stock.company_name}</p>
+                          {stock.sector && (
+                            <p className="text-slate-500 text-xs mt-2 inline-block px-2 py-1 rounded bg-slate-800">
+                              {stock.sector}
+                            </p>
+                          )}
+                        </div>
+                        {stock.current_price && (
+                          <div className="text-right">
+                            <p className="text-xs text-slate-500">Price</p>
+                            <p className="text-white font-semibold">Rs. {stock.current_price.toFixed(2)}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </main>
     </div>
