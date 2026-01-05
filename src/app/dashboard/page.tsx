@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail, Receipt } from "lucide-react";
+import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail, Receipt, PieChart } from "lucide-react";
 
 type EmailMessage = {
   id: string;
@@ -87,6 +87,13 @@ export default function DashboardPage() {
             >
               <TrendingUp className="w-4 h-4" />
               Stocks
+            </Link>
+            <Link
+              href="/dashboard/mutualfunds"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 transition text-purple-300"
+            >
+              <PieChart className="w-4 h-4" />
+              Mutual Funds
             </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
