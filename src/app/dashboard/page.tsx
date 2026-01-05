@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail, Receipt } from "lucide-react";
 
 type EmailMessage = {
   id: string;
@@ -72,13 +73,29 @@ export default function DashboardPage() {
             </h1>
             <p className="text-sm text-slate-400">Welcome, {session?.user?.name}</p>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition text-slate-300"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard/transactions"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 transition text-blue-300"
+            >
+              <Receipt className="w-4 h-4" />
+              Transactions
+            </Link>
+            <Link
+              href="/dashboard/stocks"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition text-green-300"
+            >
+              <TrendingUp className="w-4 h-4" />
+              Stocks
+            </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition text-slate-300"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 
