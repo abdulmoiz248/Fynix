@@ -171,8 +171,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Create transaction record
-    const transactionType = type === "deposit" ? "income" : "expense";
-    const transactionCategory = type === "deposit" ? "Cash Deposit" : "Cash Withdrawal";
+    const transactionType = type !== "deposit" ? "income" : "expense";
+    const transactionCategory = type !== "deposit" ? "Cash Deposit" : "Cash Withdrawal";
     
     const { error: transactionError } = await supabaseAdmin
       .from("transactions")
@@ -181,7 +181,7 @@ export async function PUT(request: NextRequest) {
         type: transactionType,
         category: transactionCategory,
         amount: amount,
-        description: `${type === "deposit" ? "Deposited" : "Withdrew"} Rs. ${amount.toFixed(2)} ${type === "deposit" ? "to" : "from"} PSX account`,
+        description: `${type !== "deposit" ? "Deposited" : "Withdrew"} Rs. ${amount.toFixed(2)} ${type === "deposit" ? "to" : "from"} PSX account`,
         date: new Date().toISOString().split('T')[0], // Use 'date' column in DATE format
       });
 
