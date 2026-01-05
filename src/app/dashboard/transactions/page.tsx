@@ -25,6 +25,13 @@ type Transaction = {
   created_at: string;
 };
 
+type CustomCategory = {
+  id: string;
+  category_name: string;
+  description: string | null;
+  created_at: string;
+};
+
 const INCOME_CATEGORIES = ["Salary", "Freelance", "Investment", "Gift", "Other Income"];
 const EXPENSE_CATEGORIES = [
   "Food & Dining",
@@ -41,6 +48,7 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -57,6 +65,7 @@ export default function TransactionsPage() {
   useEffect(() => {
     if (status === "authenticated") {
       loadTransactions();
+      loadCustomCategories();
     }
   }, [status]);
 
@@ -76,6 +85,19 @@ export default function TransactionsPage() {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCustomCategories = async () => {
+    try {
+      const response = await fetch("/api/budgets");
+      const data = await response.json();
+
+      if (response.ok && data.customCategories) {
+        setCustomCategories(data.customCategories);
+      }
+    } catch (err) {
+      console.error("Failed to load custom categories:", err);
     }
   };
 
@@ -138,7 +160,11 @@ export default function TransactionsPage() {
     .reduce((sum, t) => sum + t.amount, 0);
   const balance = totalIncome - totalExpense;
 
-  const categories = formData.type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const allExpenseCategories = [
+    ...EXPENSE_CATEGORIES,
+    ...customCategories.map((c) => c.category_name),
+  ];
+  const categories = formData.type === "income" ? INCOME_CATEGORIES : allExpenseCategories;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail, Receipt, PieChart, BookOpen, Repeat, Plus, X, Calendar, DollarSign, Loader2, Trash2, CheckCircle } from "lucide-react";
+import { TrendingUp, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, Mail, Receipt, PieChart, BookOpen, Repeat, Plus, X, Calendar, DollarSign, Loader2, Trash2, CheckCircle, Target } from "lucide-react";
 
 type EmailMessage = {
   id: string;
@@ -237,6 +237,13 @@ export default function DashboardPage() {
             >
               <BookOpen className="w-4 h-4" />
               Books
+            </Link>
+            <Link
+              href="/dashboard/budget"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 transition text-emerald-300"
+            >
+              <Target className="w-4 h-4" />
+              Budget
             </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
