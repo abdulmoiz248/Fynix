@@ -82,6 +82,13 @@ export default function DashboardPage() {
               Transactions
             </Link>
             <Link
+              href="/dashboard/invoices"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/50 transition text-orange-300"
+            >
+              <Receipt className="w-4 h-4" />
+              Invoices
+            </Link>
+            <Link
               href="/dashboard/stocks"
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition text-green-300"
             >
