@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import pytz
 
 # Load environment variables
 load_dotenv()
@@ -32,7 +33,10 @@ class DailyFinancialSummary:
         self.user_data = self._get_user_data()
         self.user_id = self.user_data['id']
         self.user_name = self.user_data.get('name', 'User')
-        self.today = datetime.now().date()
+        # Use Pakistani timezone
+        self.pk_tz = pytz.timezone('Asia/Karachi')
+        self.now_pk = datetime.now(self.pk_tz)
+        self.today = self.now_pk.date()
         self.two_days_later = self.today + timedelta(days=2)
         
     def _get_user_data(self) -> Dict:
@@ -360,7 +364,7 @@ class DailyFinancialSummary:
                 lines.append("     ⚠️  Need better budget control.")
         
         lines.append("\n" + "=" * 70)
-        lines.append("Generated: " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        lines.append("Generated: " + self.now_pk.strftime('%Y-%m-%d %H:%M:%S') + " PKT")
         lines.append("=" * 70)
         
         return "\n".join(lines)
@@ -392,9 +396,9 @@ class DailyFinancialSummary:
                 "color": 0x00ff00 if today_trans['net'] >= 0 else 0xff0000,
                 "fields": [],
                 "footer": {
-                    "text": f"Generated at {datetime.now().strftime('%I:%M %p')}"
+                    "text": f"Generated at {self.now_pk.strftime('%I:%M %p')} PKT"
                 },
-                "timestamp": datetime.now().isoformat()
+                "timestamp": self.now_pk.isoformat()
             }
             
             # User info
@@ -535,9 +539,8 @@ class DailyFinancialSummary:
             # Send to Discord
             payload = {
                 "embeds": [embed],
-                "username": "Fynix Financial Bot",
-                "avatar_url": "https://cdn-icons-png.flaticon.com/512/2738/2738055.png"
-            }
+                "username": "Fynix",
+           }
             
             response = requests.post(webhook_url, json=payload)
             
