@@ -1,0 +1,35 @@
+name: Daily Financial Summary
+
+on:
+  schedule:
+    # Runs at 11:30 PM PKT (6:30 PM UTC) every day
+    - cron: '30 18 * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  send-summary:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd scripts
+          pip install -r requirements.txt
+      
+      - name: Run Daily Financial Summary
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          USER_EMAIL: moiz20920@gmail.com
+        run: |
+          cd scripts
+          python daily_financial_summary.py moiz20920@gmail.com

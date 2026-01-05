@@ -1,0 +1,33 @@
+name: Update Tables
+
+on:
+  schedule:
+    # Runs at 5:00 PM PKT (12:00 PM UTC) every day
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  update-tables:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd scripts
+          pip install -r requirements.txt
+      
+      - name: Run Update Tables Script
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd scripts
+          python update_tables.py
