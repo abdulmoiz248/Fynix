@@ -537,6 +537,11 @@ export default function StocksPage() {
           </div>
         </div>
 
+        {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-blue-600 to-transparent"></div>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button

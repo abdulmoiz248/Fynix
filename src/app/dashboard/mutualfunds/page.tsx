@@ -351,6 +351,11 @@ export default function MutualFundsPage() {
           </div>
         </div>
 
+        {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-600 to-transparent"></div>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button

@@ -363,6 +363,11 @@ export default function TransactionsPage() {
           </div>
         </div>
 
+        {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-cyan-600 to-transparent"></div>
+        </div>
+
    {/* Recurring Payments & Subscriptions */}
         <div className="mb-8 p-6 rounded-lg border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-4">

@@ -752,6 +752,11 @@ export default function BooksPage() {
         )}
       </div>
 
+      {/* Decorative Separator */}
+      <div className="flex items-center justify-center my-8">
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+      </div>
+
       {/* Reports Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {reports.map((report) => (

@@ -399,6 +399,13 @@ export default function InvoicesPage() {
         </div>
       </header>
 
+      {/* Decorative Separator */}
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-center py-4">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent"></div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Invoices List */}

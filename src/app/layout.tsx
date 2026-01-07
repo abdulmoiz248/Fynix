@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "Fynix - AI Finance Assistant",
@@ -14,9 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <body className="bg-[#050505] text-slate-100 antialiased">
         <SessionProvider>
-          {children}
+          <QueryProvider>{children}</QueryProvider>
         </SessionProvider>
       </body>
     </html>

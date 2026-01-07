@@ -345,6 +345,11 @@ export default function BudgetPage() {
           </div>
         </div>
 
+        {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent"></div>
+        </div>
+
         {/* Add Custom Category Form */}
         {showCategoryForm && (
           <div className="mb-8 p-6 rounded-lg border border-slate-700/50 bg-slate-800/50 backdrop-blur-sm">
