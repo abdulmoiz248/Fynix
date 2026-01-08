@@ -152,6 +152,19 @@ export async function POST(request: NextRequest) {
         .eq("user_id", userId);
     }
 
+    // Add dividend as income transaction
+    await supabaseAdmin
+      .from("transactions")
+      .insert({
+        user_id: userId,
+        amount: amount,
+        type: "income",
+        category: "Dividend",
+        description: description || `Dividend from ${companyName}`,
+         date: dividend_date || new Date().toISOString().split("T")[0],
+        created_at: new Date().toISOString(),
+      });
+
     return NextResponse.json({ dividend: data }, { status: 201 });
   } catch (error) {
     console.error("Error adding dividend:", error);

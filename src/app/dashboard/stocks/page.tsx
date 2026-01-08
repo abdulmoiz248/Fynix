@@ -14,7 +14,9 @@ import {
   Gift,
   BarChart3,
   History,
+  X,
 } from "lucide-react";
+import StatCard from "@/components/dashboard/StatsCard";
 
 type Stock = {
   id: string;
@@ -102,6 +104,18 @@ export default function StocksPage() {
   const [showFeeForm, setShowFeeForm] = useState(false);
   const [showPSXSymbolForm, setShowPSXSymbolForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  
+  // Validation error states
+  const [buyError, setBuyError] = useState("");
+  const [sellError, setSellError] = useState("");
+  const [dividendError, setDividendError] = useState("");
+  const [cashError, setCashError] = useState("");
+  const [feeError, setFeeError] = useState("");
 
   const [buyForm, setBuyForm] = useState({
     symbol: "",
@@ -184,8 +198,95 @@ export default function StocksPage() {
     }
   };
 
+  // Validation functions
+  const validateBuyForm = () => {
+    if (!buyForm.symbol) {
+      setBuyError("Please select a stock symbol");
+      return false;
+    }
+    if (!buyForm.shares || parseFloat(buyForm.shares) <= 0) {
+      setBuyError("Please enter a valid number of shares");
+      return false;
+    }
+    if (!buyForm.price_per_share || parseFloat(buyForm.price_per_share) <= 0) {
+      setBuyError("Please enter a valid price per share");
+      return false;
+    }
+    
+    const totalCost = parseFloat(buyForm.shares) * parseFloat(buyForm.price_per_share);
+    if (cashAccount.balance < totalCost) {
+      setBuyError(`Insufficient balance. You need Rs. ${totalCost.toFixed(2)} but have Rs. ${cashAccount.balance.toFixed(2)}`);
+      return false;
+    }
+    
+    setBuyError("");
+    return true;
+  };
+
+  const validateSellForm = () => {
+   
+    if (!sellForm.price_per_share || parseFloat(sellForm.price_per_share) <= 0) {
+      setSellError("Please enter a valid price per share");
+      return false;
+    }
+    
+    const stock = stocks.find(s => s.symbol === sellForm.symbol);
+    if (!stock || stock.total_shares < parseFloat(sellForm.shares)) {
+      const available = stock ? stock.total_shares : 0;
+      setSellError(`You only have ${available} shares available, but trying to sell ${sellForm.shares}`);
+      return false;
+    }
+    
+    setSellError("");
+    return true;
+  };
+
+  const validateDividendForm = () => {
+    if (!dividendForm.symbol) {
+      setDividendError("Please select a stock symbol");
+      return false;
+    }
+    if (!dividendForm.amount || parseFloat(dividendForm.amount) <= 0) {
+      setDividendError("Please enter a valid dividend amount");
+      return false;
+    }
+    
+    setDividendError("");
+    return true;
+  };
+
+  const validateCashForm = () => {
+    if (!cashForm.amount || parseFloat(cashForm.amount) <= 0) {
+      setCashError("Please enter a valid amount");
+      return false;
+    }
+    
+    if (cashForm.type === "withdraw" && cashAccount.balance < parseFloat(cashForm.amount)) {
+      setCashError(`Insufficient balance. You have Rs. ${cashAccount.balance.toFixed(2)}`);
+      return false;
+    }
+    
+    setCashError("");
+    return true;
+  };
+
+  const validateFeeForm = () => {
+    if (!feeForm.amount || parseFloat(feeForm.amount) <= 0) {
+      setFeeError("Please enter a valid fee amount");
+      return false;
+    }
+    
+    setFeeError("");
+    return true;
+  };
+
   const handleBuyStock = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateBuyForm()) {
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -212,10 +313,14 @@ export default function StocksPage() {
         price_per_share: "",
         transaction_date: new Date().toISOString().split("T")[0],
       });
+      setBuyError("");
       setShowBuyForm(false);
       await loadData();
+      setModalMessage("Stock purchased successfully!");
+      setShowSuccessModal(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to buy stock");
+      setModalMessage(err instanceof Error ? err.message : "Failed to buy stock");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -223,6 +328,11 @@ export default function StocksPage() {
 
   const handleSellStock = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateSellForm()) {
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -243,7 +353,8 @@ export default function StocksPage() {
         throw new Error(data.error || "Failed to sell stock");
       }
 
-      alert(`Sold successfully! Profit/Loss: Rs. ${data.profit_loss?.toFixed(2)}`);
+      setModalMessage(`Sold successfully! Profit/Loss: Rs. ${data.profit_loss?.toFixed(2)}`);
+      setShowSuccessModal(true);
       
       setSellForm({
         symbol: "",
@@ -251,10 +362,12 @@ export default function StocksPage() {
         price_per_share: "",
         transaction_date: new Date().toISOString().split("T")[0],
       });
+      setSellError("");
       setShowSellForm(false);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to sell stock");
+      setModalMessage(err instanceof Error ? err.message : "Failed to sell stock");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -262,6 +375,11 @@ export default function StocksPage() {
 
   const handleAddDividend = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateDividendForm()) {
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -288,10 +406,14 @@ export default function StocksPage() {
         dividend_date: new Date().toISOString().split("T")[0],
         description: "",
       });
+      setDividendError("");
       setShowDividendForm(false);
       await loadData();
+      setModalMessage("Dividend added successfully!");
+      setShowSuccessModal(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add dividend");
+      setModalMessage(err instanceof Error ? err.message : "Failed to add dividend");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -299,6 +421,11 @@ export default function StocksPage() {
 
   const handleCashOperation = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateCashForm()) {
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -318,10 +445,14 @@ export default function StocksPage() {
       }
 
       setCashForm({ amount: "", type: "deposit" });
+      setCashError("");
       setShowCashForm(false);
       await loadData();
+      setModalMessage(`Cash ${cashForm.type} successful!`);
+      setShowSuccessModal(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update cash account");
+      setModalMessage(err instanceof Error ? err.message : "Failed to update cash account");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -329,6 +460,11 @@ export default function StocksPage() {
 
   const handleAddFee = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateFeeForm()) {
+      return;
+    }
+    
     setSubmitting(true);
 
     try {
@@ -355,10 +491,14 @@ export default function StocksPage() {
         description: "",
         fee_date: new Date().toISOString().split("T")[0],
       });
+      setFeeError("");
       setShowFeeForm(false);
       await loadData();
+      setModalMessage("Trading fee added successfully!");
+      setShowSuccessModal(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add fee");
+      setModalMessage(err instanceof Error ? err.message : "Failed to add fee");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -386,7 +526,8 @@ export default function StocksPage() {
         throw new Error(data.error || "Failed to add PSX symbol");
       }
 
-      alert(`Successfully added ${psxSymbolForm.symbol.toUpperCase()} to PSX symbols!`);
+      setModalMessage(`Successfully added ${psxSymbolForm.symbol.toUpperCase()} to PSX symbols!`);
+      setShowSuccessModal(true);
       setPsxSymbolForm({
         symbol: "",
         company_name: "",
@@ -396,7 +537,8 @@ export default function StocksPage() {
       setShowPSXSymbolForm(false);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add PSX symbol");
+      setModalMessage(err instanceof Error ? err.message : "Failed to add PSX symbol");
+      setShowErrorModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -423,204 +565,200 @@ export default function StocksPage() {
     .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-50 bg-slate-900/80">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Dashboard</span>
-          </button>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-            PSX Portfolio
-          </h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowCashForm(true)}
-              className="px-4 py-2 rounded-lg bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-300 transition"
-            >
-              <Wallet className="w-4 h-4 inline mr-1" />
-              Manage Cash
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+      
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Summary Cards */}
-        <div className="grid md:grid-cols-7 gap-4 mb-8">
-          <div className="p-6 rounded-lg border border-yellow-500/30 bg-yellow-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Cash Balance</h3>
-              <Wallet className="w-5 h-5 text-yellow-400" />
-            </div>
-            <p className="text-2xl font-bold text-yellow-400">Rs. {cashAccount.balance.toFixed(2)}</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            label="Cash Balance"
+            value={`Rs. ${cashAccount.balance.toFixed(2)}`}
+            icon={<Wallet className="w-5 h-5" />}
+            tone="neutral"
+          />
 
-          <div className="p-6 rounded-lg border border-blue-500/30 bg-blue-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Total Invested</h3>
-              <BarChart3 className="w-5 h-5 text-blue-400" />
-            </div>
-            <p className="text-2xl font-bold text-blue-400">Rs. {totalInvested.toFixed(2)}</p>
-          </div>
+          <StatCard
+            label="Total Invested"
+            value={`Rs. ${totalInvested.toFixed(2)}`}
+            icon={<BarChart3 className="w-5 h-5" />}
+            tone="neutral"
+          />
 
-          <div className="p-6 rounded-lg border border-purple-500/30 bg-purple-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Current Value</h3>
-              <DollarSign className="w-5 h-5 text-purple-400" />
-            </div>
-            <p className="text-2xl font-bold text-purple-400">Rs. {currentValue.toFixed(2)}</p>
-          </div>
+          <StatCard
+            label="Current Value"
+            value={`Rs. ${currentValue.toFixed(2)}`}
+            icon={<DollarSign className="w-5 h-5" />}
+            tone="neutral"
+          />
 
-          <div className={`p-6 rounded-lg border backdrop-blur-sm ${
-            totalProfitLoss >= 0 
-              ? "border-green-500/30 bg-green-900/20" 
-              : "border-red-500/30 bg-red-900/20"
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Unrealized P&L</h3>
-              {totalProfitLoss >= 0 ? (
-                <TrendingUp className="w-5 h-5 text-green-400" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-red-400" />
-              )}
-            </div>
-            <p className="text-2xl font-bold ${totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400'}">
-              Rs. {totalProfitLoss.toFixed(2)}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100).toFixed(2) : 0}%
-            </p>
-          </div>
+          <StatCard
+            label="Unrealized P&L"
+            value={`Rs. ${totalProfitLoss.toFixed(2)}`}
+            delta={totalInvested > 0 ? `${((totalProfitLoss / totalInvested) * 100).toFixed(2)}%` : "0%"}
+            icon={totalProfitLoss >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+            tone={totalProfitLoss >= 0 ? "up" : "down"}
+          />
 
-          <div className={`p-6 rounded-lg border backdrop-blur-sm ${
-            realizedProfitLoss >= 0 
-              ? "border-emerald-500/30 bg-emerald-900/20" 
-              : "border-orange-500/30 bg-orange-900/20"
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Realized P&L</h3>
-              {realizedProfitLoss >= 0 ? (
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-orange-400" />
-              )}
-            </div>
-            <p className="text-2xl font-bold ${realizedProfitLoss >= 0 ? 'text-emerald-400' : 'text-orange-400'}">
-              Rs. {realizedProfitLoss.toFixed(2)}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">From {transactions.filter(t => t.transaction_type === "sell").length} sales</p>
-          </div>
+          <StatCard
+            label="Realized P&L"
+            value={`Rs. ${realizedProfitLoss.toFixed(2)}`}
+            delta={`From ${transactions.filter(t => t.transaction_type === "sell").length} sales`}
+            icon={realizedProfitLoss >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+            tone={realizedProfitLoss >= 0 ? "up" : "down"}
+          />
 
-          <div className="p-6 rounded-lg border border-red-500/30 bg-red-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Trading Fees</h3>
-              <DollarSign className="w-5 h-5 text-red-400" />
-            </div>
-            <p className="text-2xl font-bold text-red-400">Rs. {feesSummary.total_fees.toFixed(2)}</p>
-            <p className="text-xs text-slate-400 mt-1">
-              CGT: Rs. {feesSummary.cgt.toFixed(0)} | Broker: Rs. {feesSummary.broker_charges.toFixed(0)}
-            </p>
-          </div>
+          <StatCard
+            label="Trading Fees"
+            value={`Rs. ${feesSummary.total_fees.toFixed(2)}`}
+            delta={`CGT: Rs. ${feesSummary.cgt.toFixed(0)} | Broker: Rs. ${feesSummary.broker_charges.toFixed(0)}`}
+            icon={<DollarSign className="w-5 h-5" />}
+            tone="down"
+          />
 
-          <div className="p-6 rounded-lg border border-cyan-500/30 bg-cyan-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Total Dividends</h3>
-              <DollarSign className="w-5 h-5 text-cyan-400" />
-            </div>
-            <p className="text-2xl font-bold text-cyan-400">Rs. {totalDividends.toFixed(2)}</p>
-            <p className="text-xs text-slate-400 mt-1">From {dividends.length} payments</p>
-          </div>
+          <StatCard
+            label="Total Dividends"
+            value={`Rs. ${totalDividends.toFixed(2)}`}
+            delta={`From ${dividends.length} payments`}
+            icon={<Gift className="w-5 h-5" />}
+            tone="up"
+          />
+
+          <StatCard
+            label="Portfolio Count"
+            value={`${stocks.length} Stocks`}
+            delta={`${psxStocks.length} PSX Symbols`}
+            icon={<BarChart3 className="w-5 h-5" />}
+            tone="neutral"
+          />
         </div>
 
         {/* Decorative Separator */}
         <div className="flex items-center justify-center my-8">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-blue-600 to-transparent"></div>
+          <div className="flex-1 h-px bg-linear-to-r from-transparent via-blue-600 to-transparent"></div>
+        </div>
+
+        {/* Quick Actions Section */}
+        <div className="mb-8 p-6 rounded-xl border border-slate-700/50 bg-linear-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Quick Actions</h2>
+              <p className="text-sm text-slate-400">Manage your stock portfolio and dividends</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowBuyForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 hover:scale-105"
+              >
+                <Plus className="w-4 h-4" />
+                Buy Stock
+              </button>
+              <button
+                onClick={() => setShowSellForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-105"
+              >
+                <TrendingDown className="w-4 h-4" />
+                Sell Stock
+              </button>
+              <button
+                onClick={() => setShowCashForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-yellow-500/30 hover:shadow-xl hover:shadow-yellow-500/40 hover:scale-105"
+              >
+                <Wallet className="w-4 h-4" />
+                Manage Cash
+              </button>
+              <button
+                onClick={() => setShowFeeForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 hover:scale-105"
+              >
+                <DollarSign className="w-4 h-4" />
+                Add Fee
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setActiveTab("portfolio")}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              activeTab === "portfolio"
-                ? "bg-blue-500 text-white"
-                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
-            }`}
-          >
-            Portfolio
-          </button>
-          <button
-            onClick={() => setActiveTab("dividends")}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              activeTab === "dividends"
-                ? "bg-blue-500 text-white"
-                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
-            }`}
-          >
-            Dividends
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              activeTab === "history"
-                ? "bg-blue-500 text-white"
-                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
-            }`}
-          >
-            Transaction History
-          </button>
-          <button
-            onClick={() => setActiveTab("fees")}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              activeTab === "fees"
-                ? "bg-blue-500 text-white"
-                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
-            }`}
-          >
-            Trading Fees
-          </button>
-          <button
-            onClick={() => setActiveTab("psx-symbols")}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              activeTab === "psx-symbols"
-                ? "bg-blue-500 text-white"
-                : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
-            }`}
-          >
-            PSX Symbols
-          </button>
+        <div className="mb-6 -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto">
+          <div className="flex gap-2 min-w-max md:min-w-0 md:flex-wrap">
+            <button
+              onClick={() => setActiveTab("portfolio")}
+              className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                activeTab === "portfolio"
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              Portfolio
+            </button>
+            <button
+              onClick={() => setActiveTab("dividends")}
+              className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                activeTab === "dividends"
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              Dividends
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                activeTab === "history"
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              Transaction History
+            </button>
+            <button
+              onClick={() => setActiveTab("fees")}
+              className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                activeTab === "fees"
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+              }`}
+            >
+              Trading Fees
+            </button>
+            {
+              session?.user?.email==="moiz20920@gmail.com" && (
+                <button
+                  onClick={() => setActiveTab("psx-symbols")}
+                  className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                    activeTab === "psx-symbols"
+                      ? "bg-blue-500 text-white"
+                      : "bg-slate-800/50 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  PSX Symbols
+                </button>
+              )
+            }
+          </div>
         </div>
 
         {/* Portfolio Tab */}
         {activeTab === "portfolio" && (
           <>
-            {/* Action Buttons */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setShowBuyForm(!showBuyForm)}
-                className="flex-1 py-3 px-4 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium transition flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Buy Stock
-              </button>
-              <button
-                onClick={() => setShowSellForm(!showSellForm)}
-                className="flex-1 py-3 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition flex items-center justify-center gap-2"
-              >
-                <TrendingDown className="w-5 h-5" />
-                Sell Stock
-              </button>
-            </div>
-
-            {/* Buy Form */}
+            {/* Buy Form Modal */}
             {showBuyForm && (
-              <div className="mb-6 p-6 rounded-lg border border-green-500/50 bg-slate-800/50 backdrop-blur-sm">
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="relative w-full max-w-lg mx-4 p-6 rounded-2xl border border-green-500/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl">
+                <button
+                  onClick={() => setShowBuyForm(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <h2 className="text-xl font-bold mb-4 text-white">Buy Stock</h2>
+                
+                {buyError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                    <p className="text-sm text-red-400">{buyError}</p>
+                  </div>
+                )}
+                
                 <form onSubmit={handleBuyStock} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -629,12 +767,13 @@ export default function StocksPage() {
                         required
                         value={buyForm.symbol}
                         onChange={(e) => {
-                          const stock = psxStocks.find(s => s.symbol === e.target.value);
-                          setBuyForm({ 
-                            ...buyForm, 
+                          const stock = psxStocks.find((s) => s.symbol === e.target.value);
+                          setBuyForm({
+                            ...buyForm,
                             symbol: e.target.value,
                             price_per_share: stock?.current_price?.toString() || ""
                           });
+                          setTimeout(() => validateBuyForm(), 0);
                         }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-green-500"
                       >
@@ -655,7 +794,10 @@ export default function StocksPage() {
                         min="0.01"
                         required
                         value={buyForm.shares}
-                        onChange={(e) => setBuyForm({ ...buyForm, shares: e.target.value })}
+                        onChange={(e) => {
+                          setBuyForm({ ...buyForm, shares: e.target.value });
+                          setTimeout(() => validateBuyForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-green-500"
                         placeholder="Number of shares"
                       />
@@ -664,16 +806,19 @@ export default function StocksPage() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Price per Share</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Price per Share (Rs.)</label>
                       <input
                         type="number"
                         step="0.01"
                         min="0.01"
                         required
                         value={buyForm.price_per_share}
-                        onChange={(e) => setBuyForm({ ...buyForm, price_per_share: e.target.value })}
+                        onChange={(e) => {
+                          setBuyForm({ ...buyForm, price_per_share: e.target.value });
+                          setTimeout(() => validateBuyForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-green-500"
-                        placeholder="Price"
+                        placeholder="Enter price in Rs."
                       />
                     </div>
 
@@ -715,12 +860,27 @@ export default function StocksPage() {
                   </div>
                 </form>
               </div>
+            </div>
             )}
 
-            {/* Sell Form */}
+            {/* Sell Form Modal */}
             {showSellForm && (
-              <div className="mb-6 p-6 rounded-lg border border-red-500/50 bg-slate-800/50 backdrop-blur-sm">
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="relative w-full max-w-lg mx-4 p-6 rounded-2xl border border-red-500/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl">
+                <button
+                  onClick={() => setShowSellForm(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <h2 className="text-xl font-bold mb-4 text-white">Sell Stock</h2>
+                
+                {sellError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                    <p className="text-sm text-red-400">{sellError}</p>
+                  </div>
+                )}
+                
                 <form onSubmit={handleSellStock} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -735,6 +895,7 @@ export default function StocksPage() {
                             symbol: e.target.value,
                             price_per_share: stock?.current_price?.toString() || ""
                           });
+                          setTimeout(() => validateSellForm(), 0);
                         }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-red-500"
                       >
@@ -755,7 +916,10 @@ export default function StocksPage() {
                         min="0.01"
                         required
                         value={sellForm.shares}
-                        onChange={(e) => setSellForm({ ...sellForm, shares: e.target.value })}
+                        onChange={(e) => {
+                          setSellForm({ ...sellForm, shares: e.target.value });
+                          setTimeout(() => validateSellForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-red-500"
                         placeholder="Number of shares"
                       />
@@ -764,16 +928,19 @@ export default function StocksPage() {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Price per Share</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Price per Share (Rs.)</label>
                       <input
                         type="number"
                         step="0.01"
                         min="0.01"
                         required
                         value={sellForm.price_per_share}
-                        onChange={(e) => setSellForm({ ...sellForm, price_per_share: e.target.value })}
+                        onChange={(e) => {
+                          setSellForm({ ...sellForm, price_per_share: e.target.value });
+                          setTimeout(() => validateSellForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-red-500"
-                        placeholder="Price"
+                        placeholder="Enter price in Rs."
                       />
                     </div>
 
@@ -814,6 +981,7 @@ export default function StocksPage() {
                     </button>
                   </div>
                 </form>
+              </div>
               </div>
             )}
 
@@ -881,24 +1049,38 @@ export default function StocksPage() {
         {/* Dividends Tab */}
         {activeTab === "dividends" && (
           <>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
               <div className="p-4 rounded-lg border border-green-500/30 bg-green-900/20">
                 <p className="text-sm text-slate-400">Total Dividends Received</p>
                 <p className="text-2xl font-bold text-green-400">Rs. {totalDividends.toFixed(2)}</p>
               </div>
               <button
                 onClick={() => setShowDividendForm(!showDividendForm)}
-                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium transition flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium transition flex items-center gap-2 justify-center sm:justify-start"
               >
                 <Gift className="w-5 h-5" />
                 Add Dividend
               </button>
             </div>
 
-            {/* Dividend Form */}
+            {/* Dividend Form Modal */}
             {showDividendForm && (
-              <div className="mb-6 p-6 rounded-lg border border-green-500/50 bg-slate-800/50 backdrop-blur-sm">
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="relative w-full max-w-lg mx-4 p-6 rounded-2xl border border-cyan-500/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl">
+                <button
+                  onClick={() => setShowDividendForm(false)}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <h2 className="text-xl font-bold mb-4 text-white">Record Dividend</h2>
+                
+                {dividendError && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                    <p className="text-sm text-red-400">{dividendError}</p>
+                  </div>
+                )}
+                
                 <form onSubmit={handleAddDividend} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -906,7 +1088,10 @@ export default function StocksPage() {
                       <select
                         required
                         value={dividendForm.symbol}
-                        onChange={(e) => setDividendForm({ ...dividendForm, symbol: e.target.value })}
+                        onChange={(e) => {
+                          setDividendForm({ ...dividendForm, symbol: e.target.value });
+                          setTimeout(() => validateDividendForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-green-500"
                       >
                         <option value="">Select stock</option>
@@ -919,16 +1104,19 @@ export default function StocksPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Amount</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Amount (Rs.)</label>
                       <input
                         type="number"
                         step="0.01"
                         min="0.01"
                         required
                         value={dividendForm.amount}
-                        onChange={(e) => setDividendForm({ ...dividendForm, amount: e.target.value })}
+                        onChange={(e) => {
+                          setDividendForm({ ...dividendForm, amount: e.target.value });
+                          setTimeout(() => validateDividendForm(), 0);
+                        }}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-green-500"
-                        placeholder="Dividend amount"
+                        placeholder="Enter dividend amount in Rs."
                       />
                     </div>
                   </div>
@@ -974,6 +1162,7 @@ export default function StocksPage() {
                     </button>
                   </div>
                 </form>
+              </div>
               </div>
             )}
 
@@ -1039,6 +1228,46 @@ export default function StocksPage() {
               <p className="text-slate-400 text-center py-8">No transactions yet.</p>
             ) : (
               <div className="overflow-x-auto">
+                 {/* Summary Footer */}
+                <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-slate-400 mb-1">Total Buy Transactions</p>
+                      <p className="text-lg font-bold text-green-400">
+                        {transactions.filter(t => t.transaction_type === "buy").length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-400 mb-1">Total Sell Transactions</p>
+                      <p className="text-lg font-bold text-red-400">
+                        {transactions.filter(t => t.transaction_type === "sell").length}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-400 mb-1">Total Realized Profit/Loss</p>
+                      <p className={`text-lg font-bold ${
+                        transactions
+                          .filter(t => t.transaction_type === "sell")
+                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}>
+                        {transactions
+                          .filter(t => t.transaction_type === "sell")
+                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
+                          ? "+"
+                          : ""}
+                        Rs. {transactions
+                          .filter(t => t.transaction_type === "sell")
+                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0)
+                          .toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-700">
@@ -1114,46 +1343,7 @@ export default function StocksPage() {
                   </tbody>
                 </table>
 
-                {/* Summary Footer */}
-                <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50">
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-slate-400 mb-1">Total Buy Transactions</p>
-                      <p className="text-lg font-bold text-green-400">
-                        {transactions.filter(t => t.transaction_type === "buy").length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-400 mb-1">Total Sell Transactions</p>
-                      <p className="text-lg font-bold text-red-400">
-                        {transactions.filter(t => t.transaction_type === "sell").length}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-400 mb-1">Total Realized Profit/Loss</p>
-                      <p className={`text-lg font-bold ${
-                        transactions
-                          .filter(t => t.transaction_type === "sell")
-                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
-                          ? "text-green-400"
-                          : "text-red-400"
-                      }`}>
-                        {transactions
-                          .filter(t => t.transaction_type === "sell")
-                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
-                          ? "+"
-                          : ""}
-                        Rs. {transactions
-                          .filter(t => t.transaction_type === "sell")
-                          .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0)
-                          .toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+               
               </div>
             )}
           </div>
@@ -1268,6 +1458,13 @@ export default function StocksPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 max-w-md w-full">
               <h2 className="text-xl font-bold mb-4 text-white">Manage Cash Account</h2>
+              
+              {cashError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                  <p className="text-sm text-red-400">{cashError}</p>
+                </div>
+              )}
+              
               <form onSubmit={handleCashOperation} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Operation</label>
@@ -1305,7 +1502,10 @@ export default function StocksPage() {
                     min="0.01"
                     required
                     value={cashForm.amount}
-                    onChange={(e) => setCashForm({ ...cashForm, amount: e.target.value })}
+                    onChange={(e) => {
+                      setCashForm({ ...cashForm, amount: e.target.value });
+                      setTimeout(() => validateCashForm(), 0);
+                    }}
                     className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
                     placeholder="Amount"
                   />
@@ -1337,12 +1537,22 @@ export default function StocksPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-700 max-w-md w-full">
               <h2 className="text-xl font-bold mb-4 text-white">Add Trading Fee</h2>
+              
+              {feeError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50">
+                  <p className="text-sm text-red-400">{feeError}</p>
+                </div>
+              )}
+              
               <form onSubmit={handleAddFee} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Fee Type</label>
                   <select
                     value={feeForm.fee_type}
-                    onChange={(e) => setFeeForm({ ...feeForm, fee_type: e.target.value as "broker_charge" | "cgt" | "other" })}
+                    onChange={(e) => {
+                      setFeeForm({ ...feeForm, fee_type: e.target.value as "broker_charge" | "cgt" | "other" });
+                      setTimeout(() => validateFeeForm(), 0);
+                    }}
                     className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
                   >
                     <option value="broker_charge">Broker Charge / Commission</option>
@@ -1359,9 +1569,12 @@ export default function StocksPage() {
                     min="0.01"
                     required
                     value={feeForm.amount}
-                    onChange={(e) => setFeeForm({ ...feeForm, amount: e.target.value })}
+                    onChange={(e) => {
+                      setFeeForm({ ...feeForm, amount: e.target.value });
+                      setTimeout(() => validateFeeForm(), 0);
+                    }}
                     className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
-                    placeholder="Enter amount"
+                    placeholder="Enter amount in Rs."
                   />
                 </div>
 
@@ -1470,7 +1683,7 @@ export default function StocksPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Current Price</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Current Price (Rs.)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -1478,7 +1691,7 @@ export default function StocksPage() {
                         value={psxSymbolForm.current_price}
                         onChange={(e) => setPsxSymbolForm({ ...psxSymbolForm, current_price: e.target.value })}
                         className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-blue-500"
-                        placeholder="Enter price"
+                        placeholder="Enter price in Rs."
                       />
                     </div>
                   </div>
@@ -1544,6 +1757,123 @@ export default function StocksPage() {
           </>
         )}
       </main>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-md mx-4 p-6 rounded-2xl border border-green-500/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl shadow-green-500/20">
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-full bg-green-500/20 border border-green-500/50">
+                <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">Success!</h3>
+            </div>
+            <p className="text-slate-300 mb-6">{modalMessage}</p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-2.5 rounded-lg bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium transition-all duration-200 shadow-lg shadow-green-500/30"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-md mx-4 p-6 rounded-2xl border border-red-500/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl shadow-red-500/20">
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-full bg-red-500/20 border border-red-500/50">
+                <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-white">Error</h3>
+            </div>
+            <p className="text-slate-300 mb-6">{modalMessage}</p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="w-full py-2.5 rounded-lg bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium transition-all duration-200 shadow-lg shadow-red-500/30"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Account Modal */}
+      {showCashForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg mx-4 p-6 rounded-2xl border border-slate-700/50 bg-linear-to-br from-slate-900 via-slate-900/95 to-slate-950 shadow-2xl">
+            <button
+              onClick={() => setShowCashForm(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-bold mb-6 text-white">Manage Cash Account</h2>
+            <form onSubmit={handleCashOperation} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Operation Type</label>
+                <select
+                  value={cashForm.type}
+                  onChange={(e) => setCashForm({ ...cashForm, type: e.target.value as "deposit" | "withdraw" })}
+                  className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-yellow-500"
+                >
+                  <option value="deposit">Deposit</option>
+                  <option value="withdraw">Withdraw</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Amount (Rs.)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={cashForm.amount}
+                  onChange={(e) => setCashForm({ ...cashForm, amount: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-slate-900/50 border border-slate-600 text-white focus:outline-none focus:border-yellow-500"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-lg bg-linear-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50 text-white font-medium transition-all duration-200 shadow-lg shadow-yellow-500/30"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Submit"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCashForm(false)}
+                  className="px-6 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
