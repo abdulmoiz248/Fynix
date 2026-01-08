@@ -124,3 +124,53 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const session = (await getServerSession(authConfig)) as Session | null;
+
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const transactionId = searchParams.get("id");
+
+    if (!transactionId) {
+      return NextResponse.json({ error: "Transaction ID is required" }, { status: 400 });
+    }
+
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
+    // Get user id from users table using admin client
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("email", session.user.email)
+      .single();
+
+    if (userError || !userData) {
+      console.error("User not found:", userError);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Delete the transaction only if it belongs to the user
+    const { error } = await supabaseAdmin
+      .from("transactions")
+      .delete()
+      .eq("id", transactionId)
+      .eq("user_id", userData.id);
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: "Transaction deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting transaction:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
