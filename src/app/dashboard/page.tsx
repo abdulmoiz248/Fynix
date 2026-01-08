@@ -474,6 +474,7 @@ export default function DashboardPage() {
   const largestTransactions = useMemo(
     () =>
       transactions
+        .filter((t) => Number(t.amount) > 0)
         .slice()
         .sort((a, b) => Number(b.amount) - Number(a.amount))
         .slice(0, 12)
@@ -597,6 +598,11 @@ export default function DashboardPage() {
                   />
                 </div>
 
+              </section>
+         
+
+
+
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Net Worth Composition">
                     <ResponsiveContainer width="100%" height={chartHeight}>
@@ -627,67 +633,7 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  <ChartCard title="Category Spend">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <Treemap
-                        data={transactionTreemap}
-                        dataKey="size"
-                        nameKey="name"
-                        stroke="#0b0b0b"
-                        fill="#7c3aed"
-                      />
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Savings Gauge">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <RadialBarChart
-                        innerRadius="40%"
-                        outerRadius="90%"
-                        data={[
-                          { name: "Savings", value: Math.min(100, savingsRate), fill: "#22c55e" },
-                          { name: "Gap", value: Math.max(0, 100 - savingsRate), fill: "#1f2937" },
-                        ]}
-                        startAngle={180}
-                        endAngle={0}
-                      >
-                        <RadialBar dataKey="value" />
-                        <Legend />
-                      </RadialBarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Invoice Status Mix">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <PieChart>
-                        <Pie dataKey="value" data={invoiceStatusMix} outerRadius="80%" label>
-                          {invoiceStatusMix.map((_, idx) => (
-                            <Cell key={idx} fill={chartPalette[idx % chartPalette.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={tooltipFmt} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Recurring Burn Down">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <AreaChart data={recurringByMonth}>
-                        <defs>
-                          <linearGradient id="burn" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Area type="monotone" dataKey="value" stroke="#ef4444" fillOpacity={1} fill="url(#burn)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
+    
                   <ChartCard title="Portfolio Allocation">
                     <ResponsiveContainer width="100%" height={chartHeight}>
                       <BarChart data={stockAllocation}>
@@ -704,25 +650,7 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  <ChartCard title="Cash vs Investments">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ComposedChart data={cashVsInvestments}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Bar dataKey="value" fill="#0ea5e9" />
-                        <Line dataKey="value" stroke="#22c55e" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-                </div>
-              </section>
-         
-
-         
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
+               
                   <ChartCard title="Budget vs Actual">
                     <ResponsiveContainer width="100%" height={chartHeight}>
                       <BarChart data={budgetVsActual}>
@@ -736,6 +664,12 @@ export default function DashboardPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
+
+                </div>
+         
+              <section className="space-y-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
+               
 
                   <ChartCard title="Monthly Burn Rate (Expenses)">
                     <ResponsiveContainer width="100%" height={chartHeight}>
@@ -765,165 +699,14 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  <ChartCard title="Cash Runway vs Recurring">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart
-                        data={[
-                          {
-                            label: "Runway (months)",
-                            value: recurringMonthly ? cashBalance / recurringMonthly : 0,
-                          },
-                        ]}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="label" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#22c55e" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Category Heatmap (Spend)">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ScatterChart>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="value" name="Spend" />
-                        <YAxis dataKey="name" name="Category" type="category" />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Scatter data={categorySpend} fill="#7c3aed" />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
                 </div>
               </section>
           
 
            
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  <ChartCard title="Recurring Timeline">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <AreaChart data={recurringByMonth}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Area type="monotone" dataKey="value" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Status Breakdown">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <PieChart>
-                        <Pie dataKey="value" data={recurringStatus} outerRadius="80%" label>
-                          {recurringStatus.map((_, idx) => (
-                            <Cell key={idx} fill={chartPalette[idx % chartPalette.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Category Share">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart data={recurringByCategory}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Bar dataKey="value" fill="#f59e0b" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Next Payment Countdown">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart
-                        data={recurring.map((r) => ({
-                          name: r.name,
-                          days: Math.max(
-                            0,
-                            Math.floor(
-                              (new Date(r.next_payment_date).getTime() - new Date().getTime()) /
-                                (1000 * 60 * 60 * 24)
-                            )
-                          ),
-                        }))}
-                        layout="vertical"
-                        margin={{ left: 80 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" />
-                        <Tooltip />
-                        <Bar dataKey="days" fill="#22c55e" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-                </div>
-              </section>
            
 
             
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  <ChartCard title="AR / AP Aging">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart data={arAging}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Bar dataKey="value" fill="#f59e0b" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Invoice Over Time">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ComposedChart data={invoiceByMonth}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Legend />
-                        <Area type="monotone" dataKey="income" fill="#22c55e" stroke="#22c55e" />
-                        <Area type="monotone" dataKey="expense" fill="#ef4444" stroke="#ef4444" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Top Clients">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart data={topClients} layout="vertical" margin={{ left: 80 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Bar dataKey="value" fill="#0ea5e9" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Tax / Discount Impact">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ComposedChart data={invoiceDiscountEffect}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="invoice" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Legend />
-                        <Bar dataKey="discount" fill="#f472b6" />
-                        <Bar dataKey="tax" fill="#22c55e" />
-                        <Line dataKey="subtotal" stroke="#7c3aed" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-                </div>
-              </section>
             
 
             
@@ -1001,72 +784,8 @@ export default function DashboardPage() {
                       </ComposedChart>
                     </ResponsiveContainer>
                   </ChartCard>
-                </div>
-              </section>
-            
 
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  <ChartCard title="Fund Value History">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <RechartsLine data={mfHistorySeries}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Legend />
-                        <Line dataKey="value" stroke="#0ea5e9" />
-                        <Line dataKey="profit" stroke="#22c55e" />
-                      </RechartsLine>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Profit / Loss by Fund">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <BarChart data={mfMix}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Bar dataKey="pl" fill="#22c55e" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Fund Type Mix">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <PieChart>
-                        <Pie data={mfTypeMix} dataKey="value" outerRadius="80%" label>
-                          {mfTypeMix.map((_, idx) => (
-                            <Cell key={idx} fill={chartPalette[idx % chartPalette.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={tooltipFmt} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Inflow vs Outflow">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ComposedChart data={mfFlow}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Legend />
-                        <Bar dataKey="invest" fill="#0ea5e9" />
-                        <Bar dataKey="withdraw" fill="#ef4444" />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-                </div>
-              </section>
-            
-
-          
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <ChartCard title="Fees Over Time">
+                   <ChartCard title="Fees Over Time">
                     <ResponsiveContainer width="100%" height={chartHeight}>
                       <AreaChart data={feesTrend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -1078,6 +797,17 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </ChartCard>
 
+                </div>
+              </section>
+            
+
+        
+            
+
+          
+              <section className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                 
                   <ChartCard title="Fee Type Breakdown">
                     <ResponsiveContainer width="100%" height={chartHeight}>
                       <PieChart>
@@ -1090,43 +820,9 @@ export default function DashboardPage() {
                       </PieChart>
                     </ResponsiveContainer>
                   </ChartCard>
-                </div>
-              </section>
-          
-              <section className="space-y-6">
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
-                  <ChartCard title="Income vs Expense Heat">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <ScatterChart>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="income" name="Income" />
-                        <YAxis dataKey="expense" name="Expense" />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Scatter
-                          data={monthlyIncomeExpense.map((m) => ({
-                            income: m.income,
-                            expense: m.expense,
-                            month: m.month,
-                          }))}
-                          fill="#0ea5e9"
-                        />
-                      </ScatterChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
+                  
 
-                  <ChartCard title="Category Treemap">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <Treemap
-                        data={transactionTreemap}
-                        dataKey="size"
-                        nameKey="name"
-                        stroke="#0b0b0b"
-                        fill="#7c3aed"
-                      />
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  <ChartCard title="Largest Transactions">
+                      <ChartCard title="Largest Transactions">
                     <ResponsiveContainer width="100%" height={chartHeight}>
                       <BarChart data={largestTransactions} layout="vertical" margin={{ left: 100 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -1141,28 +837,10 @@ export default function DashboardPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
-
-                  <ChartCard title="Cumulative Cashflow">
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                      <AreaChart
-                        data={monthlyIncomeExpense.map((m, idx) => ({
-                          month: m.month,
-                          cash:
-                            monthlyIncomeExpense
-                              .slice(0, idx + 1)
-                              .reduce((s, r) => s + (r.income - r.expense), 0) + cashBalance,
-                        }))}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={tooltipFmt} />
-                        <Area type="monotone" dataKey="cash" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
                 </div>
               </section>
+          
+          
           
           </>
         )}
