@@ -31,7 +31,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { dashboardQueries } from "@/lib/queries/dashboard";
 import { useDashboardStore } from "@/store/dashboardStore";
-import type { DashboardTab } from "@/store/dashboardStore";
+import TextType from "@/components/TextType";
+import StatCard from "@/components/dashboard/StatsCard";
 
 type ChartCardProps = {
   title: string;
@@ -62,37 +63,12 @@ function ChartCard({ title, subtitle, children }: ChartCardProps) {
         </div>
         <Sparkles className="w-4 h-4 text-slate-500" />
       </div>
-      <div className="h-[220px]">{children}</div>
+      <div className="h-55">{children}</div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  delta,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-  delta?: string;
-  tone?: "up" | "down" | "neutral";
-}) {
-  const toneClass =
-    tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-slate-400";
-  return (
-    <div className="card-surface rounded-2xl p-4 flex items-center justify-between">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="text-2xl font-semibold">{value}</p>
-        {delta && <p className={`text-xs ${toneClass}`}>{delta}</p>}
-      </div>
-      <div className="rounded-full bg-slate-800/60 p-3 text-slate-200">{icon}</div>
-    </div>
-  );
-}
+
 
 const formatCurrency = (value: number, currency: string) =>
   new Intl.NumberFormat("en-US", {
@@ -109,7 +85,7 @@ const monthsBetween = (months: number) => {
 };
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { status, data: session } = useSession();
   const {
     activeTab,
     setActiveTab,
@@ -514,16 +490,6 @@ export default function DashboardPage() {
     }));
   }, [invoices]);
 
-  const commonTabs: Array<{ id: DashboardTab; label: string }> = [
-    { id: "overview", label: "Common Overview" },
-    { id: "cash", label: "Cash & Budgets" },
-    { id: "recurring", label: "Recurring" },
-    { id: "invoices", label: "Invoices" },
-    { id: "stocks", label: "Stocks & PSX" },
-    { id: "mutual", label: "Mutual Funds" },
-    { id: "fees", label: "Fees" },
-    { id: "transactions", label: "Transactions" },
-  ];
 
   const moneyFormatter = (value: unknown) =>
     formatCurrency(Number(typeof value === "number" ? value : value ?? 0), currency);
@@ -547,59 +513,46 @@ export default function DashboardPage() {
   }
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <section className="glass-panel rounded-2xl p-6 border border-slate-800/60">
-          <div className="flex flex-wrap items-center gap-3 justify-between">
-            <div>
-              <p className="text-sm text-slate-400">Control Center</p>
-              <h2 className="text-xl font-semibold">Analytics Filters</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value as any)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="1m">Last 1m</option>
-                <option value="3m">Last 3m</option>
-                <option value="6m">Last 6m</option>
-                <option value="1y">Last 1y</option>
-                <option value="all">All</option>
-              </select>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="PKR">PKR</option>
-                <option value="USD">USD</option>
-              </select>
-              <select
-                value={density}
-                onChange={(e) => setDensity(e.target.value as any)}
-                className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="compact">Compact</option>
-                <option value="cozy">Cozy</option>
-                <option value="spacious">Spacious</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {commonTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-2 rounded-lg text-sm border transition ${
-                  activeTab === tab.id
-                    ? "border-indigo-500 text-white bg-indigo-500/10"
-                    : "border-slate-800 text-slate-400 hover:text-white"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </section>
+      {/* Welcome Section */}
+    <div className="glass-panel rounded-2xl p-8 border border-slate-800/60 bg-linear-to-br from-slate-900/60 to-slate-800/30">
+  <div className="flex items-center justify-center gap-4 mb-6">
+    <div className="text-center">
+      <TextType
+        text={[
+          `Welcome back, ${session?.user?.name || session?.user?.email?.split("@")[0] || "there"}! 👋`,
+          "This is your personal financial command center.",
+          "Every smart decision compounds over time.",
+          "Small, consistent investments today build massive wealth tomorrow.",
+          "Compounding rewards patience more than perfection.",
+          "Stay invested. Stay consistent. Let time do the heavy lifting.",
+          `Net worth: ${formatCurrency(netWorth, currency)} • Tracking ${transactions.length} transactions`
+        ]}
+        className="text-lg md:text-xl font-medium text-slate-100 leading-relaxed"
+        typingSpeed={45}
+        pauseDuration={1800}
+        showCursor={true}
+        cursorCharacter="|"
+      />
+    </div>
+  </div>
+
+  <div className="flex flex-col items-center justify-center gap-2">
+    <p className="text-slate-400 text-sm">
+      {new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })}
+    </p>
+
+    <p className="text-slate-500 text-xs tracking-wide">
+      Long-term vision • Compounded growth • Financial clarity
+    </p>
+  </div>
+</div>
+
+
 
         {loading ? (
           <div className="card-surface rounded-2xl p-12 text-center">
@@ -607,7 +560,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {activeTab === "overview" && (
+          
               <section className="space-y-6">
                 <div className="grid md:grid-cols-4 gap-4">
                   <StatCard
@@ -765,9 +718,9 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+         
 
-            {activeTab === "cash" && (
+         
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Budget vs Actual">
@@ -844,9 +797,9 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+          
 
-            {activeTab === "recurring" && (
+           
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Recurring Timeline">
@@ -912,9 +865,9 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+           
 
-            {activeTab === "invoices" && (
+            
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="AR / AP Aging">
@@ -971,9 +924,9 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+            
 
-            {activeTab === "stocks" && (
+            
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Holdings Allocation">
@@ -1050,9 +1003,8 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+            
 
-            {activeTab === "mutual" && (
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Fund Value History">
@@ -1109,9 +1061,9 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+            
 
-            {activeTab === "fees" && (
+          
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <ChartCard title="Fees Over Time">
@@ -1140,9 +1092,7 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
-
-            {activeTab === "transactions" && (
+          
               <section className="space-y-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
                   <ChartCard title="Income vs Expense Heat">
@@ -1213,7 +1163,7 @@ export default function DashboardPage() {
                   </ChartCard>
                 </div>
               </section>
-            )}
+          
           </>
         )}
     </div>

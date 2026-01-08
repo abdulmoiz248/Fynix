@@ -45,7 +45,7 @@ export default function Header({ toggleMobile }: HeaderProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 transition"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
               <User className="w-4 h-4 text-white" />
             </div>
             <span className="hidden sm:inline text-sm font-medium">{userName}</span>

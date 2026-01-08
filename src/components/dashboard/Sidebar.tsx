@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Receipt,
@@ -59,13 +60,23 @@ export default function Sidebar({
         <div className="p-6 border-b border-slate-800 shrink-0">
           <div className="flex items-center justify-between">
             {!collapsed && (
-              <div>
-                <p className="text-xs py-2.5 uppercase tracking-[0.2em] text-slate-500">Fynix AI</p>
-                <h1 className="text-xl font-semibold mt-1">
-                
-                </h1>
+              <div className="flex items-center gap-3">
+                <Image 
+                  src="/logo.png" 
+                  alt="Fynix Logo" 
+                  width={40} 
+                  height={40}
+                  className="rounded-lg"
+                />
+                <div>
+                  <h1 className="text-xl font-bold bg-linear-to-r from-indigo-400 via-cyan-300 to-emerald-300 bg-clip-text text-transparent">
+                    Fynix
+                  </h1>
+                 
+                </div>
               </div>
             )}
+           
             {/* Mobile Close Button */}
             <button
               onClick={() => setMobileOpen(false)}
