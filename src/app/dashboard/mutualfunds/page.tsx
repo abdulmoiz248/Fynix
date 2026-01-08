@@ -17,6 +17,7 @@ import {
   PieChart,
   LineChart,
 } from "lucide-react";
+import StatCard from "@/components/dashboard/StatsCard";
 
 type MutualFund = {
   id: string;
@@ -71,6 +72,12 @@ export default function MutualFundsPage() {
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [showUpdateValueForm, setShowUpdateValueForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    tone?: "success" | "error";
+  }>({ open: false, title: "", message: "", tone: "success" });
 
   const [investForm, setInvestForm] = useState({
     fund_name: "",
@@ -155,7 +162,12 @@ export default function MutualFundsPage() {
         throw new Error(data.error || "Failed to record investment");
       }
 
-      alert("Investment recorded successfully!");
+      setFeedbackModal({
+        open: true,
+        title: "Investment Recorded",
+        message: "Your mutual fund investment was saved successfully.",
+        tone: "success",
+      });
       setInvestForm({
         fund_name: "",
         fund_type: "",
@@ -168,7 +180,12 @@ export default function MutualFundsPage() {
       setShowInvestForm(false);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record investment");
+      setFeedbackModal({
+        open: true,
+        title: "Investment Failed",
+        message: err instanceof Error ? err.message : "Failed to record investment",
+        tone: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -198,7 +215,12 @@ export default function MutualFundsPage() {
         throw new Error(data.error || "Failed to record withdrawal");
       }
 
-      alert(`Withdrawal successful! Profit/Loss: Rs. ${data.profit_loss?.toFixed(2)}`);
+      setFeedbackModal({
+        open: true,
+        title: "Withdrawal Successful",
+        message: `P&L realized: Rs. ${data.profit_loss?.toFixed(2)}`,
+        tone: "success",
+      });
       setWithdrawForm({
         fund_id: "",
         amount: "",
@@ -210,7 +232,12 @@ export default function MutualFundsPage() {
       setShowWithdrawForm(false);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record withdrawal");
+      setFeedbackModal({
+        open: true,
+        title: "Withdrawal Failed",
+        message: err instanceof Error ? err.message : "Failed to record withdrawal",
+        tone: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -239,9 +266,12 @@ export default function MutualFundsPage() {
         throw new Error(data.error || "Failed to update value");
       }
 
-      alert(
-        `Value updated successfully!\nChange: Rs. ${data.value_change?.toFixed(2)} (${data.value_change_percentage?.toFixed(2)}%)\nCurrent P&L: Rs. ${data.profit_loss?.toFixed(2)}`
-      );
+      setFeedbackModal({
+        open: true,
+        title: "Value Updated",
+        message: `Change: Rs. ${data.value_change?.toFixed(2)} (${data.value_change_percentage?.toFixed(2)}%) • P&L: Rs. ${data.profit_loss?.toFixed(2)}`,
+        tone: "success",
+      });
       setUpdateValueForm({
         fund_id: "",
         new_value: "",
@@ -252,7 +282,12 @@ export default function MutualFundsPage() {
       setShowUpdateValueForm(false);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update value");
+      setFeedbackModal({
+        open: true,
+        title: "Update Failed",
+        message: err instanceof Error ? err.message : "Failed to update value",
+        tone: "error",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -277,83 +312,81 @@ export default function MutualFundsPage() {
   const totalWithdrawals = transactions.filter((t) => t.transaction_type === "withdraw").length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
-      <header className="border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-50 bg-slate-900/80">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-2 text-slate-300 hover:text-white transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Dashboard</span>
-          </button>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Mutual Funds Portfolio
-          </h1>
-          <div className="w-32"></div>
-        </div>
-      </header>
+     
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Summary Cards */}
+        {/* Summary Cards using shared StatCard */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <div className="p-6 rounded-lg border border-blue-500/30 bg-blue-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Total Invested</h3>
-              <PieChart className="w-5 h-5 text-blue-400" />
-            </div>
-            <p className="text-2xl font-bold text-blue-400">Rs. {totalInvested.toFixed(2)}</p>
-          </div>
+          <StatCard
+            label="Total Invested"
+            value={`Rs. ${totalInvested.toFixed(2)}`}
+            icon={<PieChart className="w-5 h-5" />}
+            delta={`${funds.length} funds`}
+            tone="neutral"
+          />
+          <StatCard
+            label="Current Value"
+            value={`Rs. ${currentValue.toFixed(2)}`}
+            icon={<LineChart className="w-5 h-5" />}
+            delta={`${totalInvestments} invests`}
+            tone="neutral"
+          />
+          <StatCard
+            label="Total P&L"
+            value={`${totalProfitLoss >= 0 ? "+" : ""}Rs. ${totalProfitLoss.toFixed(2)}`}
+            icon={totalProfitLoss >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+            delta={
+              totalInvested > 0 ? `${((totalProfitLoss / totalInvested) * 100).toFixed(2)}%` : "0%"
+            }
+            tone={totalProfitLoss >= 0 ? "up" : "down"}
+          />
+          <StatCard
+            label="Activity"
+            value={`${funds.length} funds`}
+            icon={<History className="w-5 h-5" />}
+            delta={`${totalInvestments} invest • ${totalWithdrawals} withdraw`}
+            tone="neutral"
+          />
+        </div>
 
-          <div className="p-6 rounded-lg border border-purple-500/30 bg-purple-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Current Value</h3>
-              <DollarSign className="w-5 h-5 text-purple-400" />
+        {/* Quick Actions Section */}
+        <div className="mb-8 p-6 rounded-xl border border-slate-700/50 bg-linear-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-white mb-1">Quick Actions</h2>
+              <p className="text-sm text-slate-400">Manage your mutual fund portfolio</p>
             </div>
-            <p className="text-2xl font-bold text-purple-400">Rs. {currentValue.toFixed(2)}</p>
-          </div>
-
-          <div
-            className={`p-6 rounded-lg border backdrop-blur-sm ${
-              totalProfitLoss >= 0
-                ? "border-green-500/30 bg-green-900/20"
-                : "border-red-500/30 bg-red-900/20"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Total P&L</h3>
-              {totalProfitLoss >= 0 ? (
-                <TrendingUp className="w-5 h-5 text-green-400" />
-              ) : (
-                <TrendingDown className="w-5 h-5 text-red-400" />
-              )}
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowInvestForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 hover:scale-105"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+                Invest
+              </button>
+              <button
+                onClick={() => setShowWithdrawForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-105"
+              >
+                <ArrowDownLeft className="w-4 h-4" />
+                Withdraw
+              </button>
+              <button
+                onClick={() => setShowUpdateValueForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 text-white font-medium text-sm shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Update Value
+              </button>
             </div>
-            <p
-              className={`text-2xl font-bold ${totalProfitLoss >= 0 ? "text-green-400" : "text-red-400"}`}
-            >
-              {totalProfitLoss >= 0 ? "+" : ""}Rs. {totalProfitLoss.toFixed(2)}
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              {totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100).toFixed(2) : 0}%
-            </p>
-          </div>
-
-          <div className="p-6 rounded-lg border border-cyan-500/30 bg-cyan-900/20 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-slate-300 text-sm">Total Funds</h3>
-              <LineChart className="w-5 h-5 text-cyan-400" />
-            </div>
-            <p className="text-2xl font-bold text-cyan-400">{funds.length}</p>
-            <p className="text-xs text-slate-400 mt-1">
-              {totalInvestments} investments • {totalWithdrawals} withdrawals
-            </p>
           </div>
         </div>
 
         {/* Decorative Separator */}
         <div className="flex items-center justify-center my-8">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-purple-600 to-transparent"></div>
+          <div className="flex-1 h-px bg-linear-to-r from-transparent via-purple-600 to-transparent"></div>
         </div>
 
         {/* Tabs */}
@@ -393,30 +426,7 @@ export default function MutualFundsPage() {
         {/* Portfolio Tab */}
         {activeTab === "portfolio" && (
           <>
-            {/* Action Buttons */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setShowInvestForm(!showInvestForm)}
-                className="flex-1 py-3 px-4 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium transition flex items-center justify-center gap-2"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-                Invest
-              </button>
-              <button
-                onClick={() => setShowWithdrawForm(!showWithdrawForm)}
-                className="flex-1 py-3 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition flex items-center justify-center gap-2"
-              >
-                <ArrowDownLeft className="w-5 h-5" />
-                Withdraw
-              </button>
-              <button
-                onClick={() => setShowUpdateValueForm(!showUpdateValueForm)}
-                className="flex-1 py-3 px-4 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium transition flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Update Value
-              </button>
-            </div>
+            {/* Inline actions kept above in Quick Actions */}
 
             {/* Invest Form */}
             {showInvestForm && (
@@ -1110,6 +1120,42 @@ export default function MutualFundsPage() {
           </div>
         )}
       </main>
+      {/* Feedback Modal */}
+      {feedbackModal.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-linear-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    feedbackModal.tone === "success"
+                      ? "bg-emerald-500/20 text-emerald-400"
+                      : "bg-rose-500/20 text-rose-400"
+                  }`}
+                >
+                  {feedbackModal.tone === "success" ? (
+                    <TrendingUp className="w-5 h-5" />
+                  ) : (
+                    <TrendingDown className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg">{feedbackModal.title}</h3>
+                  <p className="text-slate-400 text-sm">{feedbackModal.message}</p>
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setFeedbackModal({ ...feedbackModal, open: false })}
+                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

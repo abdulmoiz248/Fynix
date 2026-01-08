@@ -73,6 +73,12 @@ export default function InvoicesPage() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [sending, setSending] = useState(false);
   const [addingTransaction, setAddingTransaction] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    tone?: "success" | "error";
+  }>({ open: false, title: "", message: "", tone: "error" });
 
   const [formData, setFormData] = useState<{
     invoice_number: string;
@@ -248,11 +254,21 @@ export default function InvoicesPage() {
         handleCloseModal();
       } else {
         const error = await response.json();
-        alert(error.error || "Failed to save invoice");
+        setFeedback({
+          open: true,
+          title: "Save Failed",
+          message: error.error || "Failed to save invoice",
+          tone: "error",
+        });
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
-      alert("Failed to save invoice");
+      setFeedback({
+        open: true,
+        title: "Save Failed",
+        message: "Failed to save invoice",
+        tone: "error",
+      });
     }
   };
 
@@ -292,11 +308,21 @@ export default function InvoicesPage() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else {
-        alert("Failed to download invoice");
+        setFeedback({
+          open: true,
+          title: "Download Failed",
+          message: "Failed to download invoice",
+          tone: "error",
+        });
       }
     } catch (error) {
       console.error("Error downloading invoice:", error);
-      alert("Failed to download invoice");
+      setFeedback({
+        open: true,
+        title: "Download Failed",
+        message: "Failed to download invoice",
+        tone: "error",
+      });
     }
   };
 
@@ -578,7 +604,7 @@ export default function InvoicesPage() {
       {/* Create/Edit Invoice Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-linear-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-5xl my-8">
+          <div className="bg-linear-to-br from-slate-900 via-slate-900 to-slate-800 border border-slate-700/50 rounded-2xl shadow-2xl w-full max-w-6xl my-8">
             {/* Modal Header */}
             <div className="flex justify-between items-center p-6 border-b border-slate-700/50  bg-slate-900/95 backdrop-blur-sm z-10 rounded-t-2xl">
               <div>
@@ -641,7 +667,7 @@ export default function InvoicesPage() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
+        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
           <Calendar size={16} /> Due Date *
         </label>
         <input
@@ -700,7 +726,7 @@ export default function InvoicesPage() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
+        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
           <Phone size={16} /> Client Phone
         </label>
         <input
@@ -712,7 +738,7 @@ export default function InvoicesPage() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
+        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1">
           <MapPin size={16} /> Client Address
         </label>
         <input
@@ -958,6 +984,41 @@ export default function InvoicesPage() {
                       Send
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal */}
+      {feedback.open && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md rounded-2xl border border-slate-700/60 bg-linear-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    feedback.tone === "success" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                  }`}
+                >
+                  {feedback.tone === "success" ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg">{feedback.title}</h3>
+                  <p className="text-slate-400 text-sm">{feedback.message}</p>
+                </div>
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setFeedback({ ...feedback, open: false })}
+                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                >
+                  Close
                 </button>
               </div>
             </div>
