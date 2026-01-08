@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { BadgeDollarSign, Gauge, LayoutGrid, LogOut, Repeat, Sparkles, Wallet, TrendingUp, FileText, Target, PieChart, Receipt } from "lucide-react";
+import { BadgeDollarSign, Gauge, Repeat, Sparkles, Wallet } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -27,6 +26,7 @@ import {
   Treemap,
   XAxis,
   YAxis,
+  PieChart,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardQueries } from "@/lib/queries/dashboard";
@@ -120,8 +120,6 @@ export default function DashboardPage() {
     density,
     setDensity,
   } = useDashboardStore();
-
-    const [showAppsMenu, setShowAppsMenu] = useState(false);
 
   const transactionsQuery = useQuery({
     queryKey: ["transactions"],
@@ -548,120 +546,7 @@ export default function DashboardPage() {
     redirect("/signup");
   }
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-slate-800/60 bg-black/70 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Fynix AI</p>
-            <h1 className="text-3xl font-semibold flex items-center gap-2">
-              <span className="bg-linear-to-r from-indigo-400 via-cyan-300 to-emerald-300 bg-clip-text text-transparent">
-                Intelligence Hub
-              </span>
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Connected as {session?.user?.email ?? "Anonymous"}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <button
-                onClick={() => setShowAppsMenu(!showAppsMenu)}
-                className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 hover:border-indigo-500/60 flex items-center gap-2"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                All Apps
-              </button>
-              {showAppsMenu && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowAppsMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50 overflow-hidden">
-                    <div className="p-2">
-                      <Link
-                        href="/dashboard/transactions"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <Receipt className="w-5 h-5 text-blue-400" />
-                        <div>
-                          <p className="font-medium">Transactions</p>
-                          <p className="text-xs text-slate-400">Income & Expenses</p>
-                        </div>
-                      </Link>
-                      <Link
-                        href="/dashboard/budget"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <Target className="w-5 h-5 text-green-400" />
-                        <div>
-                          <p className="font-medium">Budget</p>
-                          <p className="text-xs text-slate-400">Track spending</p>
-                        </div>
-                      </Link>
-                      <Link
-                        href="/dashboard/invoices"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <BadgeDollarSign className="w-5 h-5 text-orange-400" />
-                        <div>
-                          <p className="font-medium">Invoices</p>
-                          <p className="text-xs text-slate-400">Billing management</p>
-                        </div>
-                      </Link>
-                      <Link
-                        href="/dashboard/stocks"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <TrendingUp className="w-5 h-5 text-cyan-400" />
-                        <div>
-                          <p className="font-medium">Stocks</p>
-                          <p className="text-xs text-slate-400">Portfolio & PSX</p>
-                        </div>
-                      </Link>
-                      <Link
-                        href="/dashboard/mutualfunds"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <PieChart className="w-5 h-5 text-purple-400" />
-                        <div>
-                          <p className="font-medium">Mutual Funds</p>
-                          <p className="text-xs text-slate-400">Investments</p>
-                        </div>
-                      </Link>
-                      <Link
-                        href="/dashboard/books"
-                        onClick={() => setShowAppsMenu(false)}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-200 transition"
-                      >
-                        <FileText className="w-5 h-5 text-yellow-400" />
-                        <div>
-                          <p className="font-medium">Books</p>
-                          <p className="text-xs text-slate-400">Accounting reports</p>
-                        </div>
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-rose-400/60 text-slate-200 flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <section className="glass-panel rounded-2xl p-6 border border-slate-800/60">
           <div className="flex flex-wrap items-center gap-3 justify-between">
             <div>
@@ -1331,7 +1216,6 @@ export default function DashboardPage() {
             )}
           </>
         )}
-      </main>
     </div>
   );
 }

@@ -123,8 +123,7 @@ const authConfig: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "openid email profile https://mail.google.com/",
-          access_type: "offline",
+        
          
         },
       },
