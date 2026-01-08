@@ -668,141 +668,107 @@ export default function BooksPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Accounting Books</h1>
-        <p className="text-gray-600">Generate financial statements and accounting reports</p>
-      </div>
+ <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-      {/* Date Filter */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Select Period
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            onClick={() => setDateFilter("this_month")}
-            className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-              dateFilter === "this_month"
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => setDateFilter("previous_month")}
-            className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-              dateFilter === "previous_month"
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            Previous Month
-          </button>
-          <button
-            onClick={() => setDateFilter("previous_6_months")}
-            className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-              dateFilter === "previous_6_months"
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            Previous 6 Months
-          </button>
-          <button
-            onClick={() => setDateFilter("custom")}
-            className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-              dateFilter === "custom"
-                ? "border-blue-500 bg-blue-50 text-blue-700"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            Custom Period
-          </button>
-        </div>
-
-        {dateFilter === "custom" && (
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Decorative Separator */}
-      <div className="flex items-center justify-center my-8">
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-      </div>
-
-      {/* Reports Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {reports.map((report) => (
-          <button
-            key={report.type}
-            onClick={() => fetchReportData(report.type)}
-            disabled={loading || (dateFilter === "custom" && (!customStartDate || !customEndDate))}
-            className={`bg-white rounded-lg p-6 shadow-sm border-2 transition-all hover:shadow-md ${
-              selectedReport === report.type
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-blue-300"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-lg ${
-                selectedReport === report.type ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
-              }`}>
-                {report.icon}
-              </div>
-              <div className="flex-1 text-left">
-                <h3 className="font-semibold text-gray-900 mb-1">{report.title}</h3>
-                <p className="text-sm text-gray-600">{report.description}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* Report Display */}
-      {loading && (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Generating report...</p>
-        </div>
-      )}
-
-      {!loading && reportData && (
-        <div className="bg-gray-50 rounded-lg shadow-sm p-8 border border-gray-200">
-          {selectedReport === "balance_sheet" && renderBalanceSheet(reportData)}
-          {selectedReport === "income_statement" && renderIncomeStatement(reportData)}
-          {selectedReport === "cash_flow" && renderCashFlow(reportData)}
-          {selectedReport === "ledger" && renderLedger(reportData)}
-          {selectedReport === "journal" && renderJournal(reportData)}
-          {selectedReport === "trial_balance" && renderTrialBalance(reportData)}
-        </div>
-      )}
+  {/* Date Filter */}
+  <div className="bg-white rounded-xl shadow p-5 border border-gray-200">
+    <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+      <Calendar className="w-5 h-5" />
+      Select Period
+    </h2>
+    <div className="flex flex-wrap gap-2 md:gap-3">
+      {[
+        { key: "this_month", label: "This Month" },
+        { key: "previous_month", label: "Previous Month" },
+        { key: "previous_6_months", label: "Previous 6 Months" },
+        { key: "custom", label: "Custom Period" },
+      ].map((btn) => (
+        <button
+          key={btn.key}
+          //@ts-ignore
+          onClick={() => setDateFilter(btn.key)}
+          className={`px-4 py-2 rounded-full border-2 font-medium transition-colors ${
+            dateFilter === btn.key
+              ? "border-blue-500 bg-blue-50 text-blue-700"
+              : "border-gray-200 hover:border-blue-300 hover:bg-gray-50 text-gray-700"
+          }`}
+        >
+          {btn.label}
+        </button>
+      ))}
     </div>
+
+    {dateFilter === "custom" && (
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+          <input
+            type="date"
+            value={customStartDate}
+            onChange={(e) => setCustomStartDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+          <input
+            type="date"
+            value={customEndDate}
+            onChange={(e) => setCustomEndDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+      </div>
+    )}
+  </div>
+
+  {/* Reports Grid */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {reports.map((report) => (
+      <button
+        key={report.type}
+        onClick={() => fetchReportData(report.type)}
+        disabled={loading || (dateFilter === "custom" && (!customStartDate || !customEndDate))}
+        className={`flex flex-col p-4 rounded-xl border-2 shadow-sm transition-all hover:shadow-md ${
+          selectedReport === report.type
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-200 hover:border-blue-300 bg-white"
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        <div className={`p-3 mb-2 rounded-lg w-max ${
+          selectedReport === report.type ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
+        }`}>
+          {report.icon}
+        </div>
+        <div className="text-left">
+          <h3 className="font-semibold text-gray-900">{report.title}</h3>
+          <p className="text-sm text-gray-500">{report.description}</p>
+        </div>
+      </button>
+    ))}
+  </div>
+
+  {/* Report Display */}
+  <div className="space-y-4">
+    {loading && (
+      <div className="bg-white rounded-xl shadow p-8 text-center border border-gray-200">
+        <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-3" />
+        <p className="text-gray-600">Generating report...</p>
+      </div>
+    )}
+
+    {!loading && reportData && (
+      <div className="bg-white rounded-xl shadow p-6 border border-gray-200">
+        {selectedReport === "balance_sheet" && renderBalanceSheet(reportData)}
+        {selectedReport === "income_statement" && renderIncomeStatement(reportData)}
+        {selectedReport === "cash_flow" && renderCashFlow(reportData)}
+        {selectedReport === "ledger" && renderLedger(reportData)}
+        {selectedReport === "journal" && renderJournal(reportData)}
+        {selectedReport === "trial_balance" && renderTrialBalance(reportData)}
+      </div>
+    )}
+  </div>
+</div>
+
   );
 }
