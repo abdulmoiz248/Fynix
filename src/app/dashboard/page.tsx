@@ -71,11 +71,7 @@ function ChartCard({ title, subtitle, children }: ChartCardProps) {
 
 
 const formatCurrency = (value: number, currency: string) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value || 0);
+  {return "Rs." + value.toFixed(2);}
 
 const monthsBetween = (months: number) => {
   const now = new Date();
