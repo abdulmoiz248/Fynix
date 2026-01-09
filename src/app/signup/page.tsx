@@ -1,5 +1,7 @@
 "use client";
 
+import Footer from "@/components/landing-page/footer";
+import Header from "@/components/landing-page/header";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -25,18 +27,15 @@ export default function SignupPage() {
   };
 
   return (
+    <>
+      <Header/>
+       
     <div className="min-h-screen flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
-            Fynix
-          </h1>
-          <p className="text-slate-400">Your AI Finance Assistant</p>
-        </div>
+     
 
         {/* Sign Up Card */}
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-sm p-8 shadow-xl">
+        <div className="mt-12 rounded-xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-sm p-8 shadow-xl">
           <h2 className="text-2xl font-bold mb-2">Create Account</h2>
           <p className="text-slate-400 mb-8">
             Sign up with Google to get started with your financial journey
@@ -75,30 +74,14 @@ export default function SignupPage() {
             {isLoading ? "Signing up..." : "Continue with Google"}
           </button>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-slate-700/50"></div>
-            <span className="text-sm text-slate-500">or</span>
-            <div className="flex-1 h-px bg-slate-700/50"></div>
-          </div>
 
-          {/* Back to Home */}
-          <div className="text-center">
-            <p className="text-slate-400 text-sm">
-              Already have an account?{" "}
-              <Link href="/" className="text-blue-400 hover:text-blue-300 transition">
-                Back to home
-              </Link>
-            </p>
-          </div>
+         
         </div>
 
-        {/* Permissions Notice */}
-        <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30 text-sm text-blue-300">
-          <p className="font-semibold mb-2">What we access:</p>
-          <p>We request Gmail access to analyze your financial emails and provide personalized insights.</p>
-        </div>
+     
       </div>
     </div>
+    <Footer/>
+    </>
   );
 }
