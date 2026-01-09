@@ -7,7 +7,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg--to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
             Fynix
           </h1>
           <Link
@@ -23,7 +23,7 @@ export default function LandingPage() {
       <section className="flex-1 flex items-center justify-center px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Your <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">AI Finance Assistant</span>
+            Your <span className="bg--to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">AI Finance Assistant</span>
           </h2>
           
           <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
@@ -32,7 +32,7 @@ export default function LandingPage() {
 
           <Link
             href="/signup"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold text-lg hover:shadow-lg hover:shadow-blue-500/50 transition transform hover:scale-105"
+            className="inline-flex items-center gap-2 px-8 py-4 bg--to-r from-blue-600 to-cyan-600 rounded-lg font-semibold text-lg hover:shadow-lg hover:shadow-blue-500/50 transition transform hover:scale-105"
           >
             Start Free <ArrowRight className="w-5 h-5" />
           </Link>

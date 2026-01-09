@@ -98,6 +98,7 @@ export default function DashboardPage() {
     queryFn: dashboardQueries.transactions,
   });
   const budgetsQuery = useQuery({ queryKey: ["budgets"], queryFn: dashboardQueries.budgets });
+ 
   const recurringQuery = useQuery({
     queryKey: ["recurring"],
     queryFn: dashboardQueries.recurring,

@@ -23,6 +23,8 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatsCard";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardQueries } from "@/lib/queries/dashboard";
 
 type Transaction = {
   id: string;
@@ -67,9 +69,9 @@ type RecurringPayment = {
 export default function TransactionsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -84,11 +86,23 @@ export default function TransactionsPage() {
   }>({ open: false, id: null, entity: null });
   const [confirming, setConfirming] = useState(false);
   const [banner, setBanner] = useState<null | { type: "success" | "error"; message: string }>(null);
- const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
-  const [recurringLoading, setRecurringLoading] = useState(false);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [converting, setConverting] = useState<string | null>(null);
   const [recurringSubmitting, setRecurringSubmitting] = useState(false);
+
+   const recurringQuery = useQuery({
+    queryKey: ["recurring"],
+    queryFn: dashboardQueries.recurring,
+  });
+
+   const recurringPayments = recurringQuery.data?.recurringPayments || [];
+
+  const transactionsQuery = useQuery({
+    queryKey: ["transactions"],
+    queryFn: dashboardQueries.transactions,
+  });
+  const transactions = transactionsQuery.data?.transactions || [];
 
   function computeNextPaymentDate(frequency: string, baseDate = new Date()): string {
     const d = new Date(baseDate);
@@ -113,6 +127,8 @@ export default function TransactionsPage() {
     }
     return d.toISOString().split("T")[0];
   }
+
+
   const [formData, setFormData] = useState({
     type: "expense" as "income" | "expense",
     amount: "",
@@ -131,29 +147,11 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      loadTransactions();
       loadCustomCategories();
     }
   }, [status]);
 
-  const loadTransactions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch("/api/transactions");
-      const data = (await response.json()) as { transactions?: Transaction[]; error?: string };
 
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to load transactions");
-      }
-
-      setTransactions(data.transactions ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadCustomCategories = async () => {
     try {
@@ -169,29 +167,7 @@ export default function TransactionsPage() {
   };
 
 
-    useEffect(() => {
-      if (status !== "authenticated") return;
-  
-     
-  
-      const loadRecurringPayments = async () => {
-        try {
-          setRecurringLoading(true);
-          const response = await fetch("/api/recurring-payments");
-          const data = await response.json();
-          if (response.ok) {
-            setRecurringPayments(data.recurringPayments || []);
-          }
-        } catch (error) {
-          console.error("Error loading recurring payments:", error);
-        } finally {
-          setRecurringLoading(false);
-        }
-      };
-  
-  
-      loadRecurringPayments();
-    }, [status]);
+ 
 
   const handleDeleteTransaction = async (id: string) => {
     try {
@@ -203,8 +179,7 @@ export default function TransactionsPage() {
       if (!response.ok) {
         throw new Error("Failed to delete transaction");
       }
-
-      await loadTransactions();
+      transactionsQuery.refetch();
       setBanner({ type: "success", message: "Transaction deleted successfully" });
     } catch (err) {
       setBanner({ type: "error", message: err instanceof Error ? err.message : "Failed to delete transaction" });
@@ -244,7 +219,7 @@ export default function TransactionsPage() {
         date: new Date().toISOString().split("T")[0],
       });
       setShowForm(false);
-      await loadTransactions();
+      transactionsQuery.refetch();
       setBanner({ type: "success", message: "Transaction added successfully" });
     } catch (err) {
       setBanner({ type: "error", message: err instanceof Error ? err.message : "Failed to add transaction" });
@@ -295,7 +270,7 @@ export default function TransactionsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setRecurringPayments([...recurringPayments, data.recurringPayment]);
+        recurringQuery.refetch();
         setShowAddModal(false);
         setFormData1({
           name: "",
@@ -325,7 +300,7 @@ export default function TransactionsPage() {
       });
 
       if (response.ok) {
-        setRecurringPayments(recurringPayments.filter((p) => p.id !== id));
+        recurringQuery.refetch();
         setBanner({ type: "success", message: "Recurring payment deleted" });
       }
     } catch (error) {
@@ -346,14 +321,10 @@ export default function TransactionsPage() {
       if (response.ok) {
         const data = await response.json();
         // Update the recurring payment with new next_payment_date
-        setRecurringPayments(
-          recurringPayments.map((p) =>
-            p.id === id
-              ? { ...p, next_payment_date: data.next_payment_date }
-              : p
-          )
-        );
-        await loadTransactions();
+        
+        recurringQuery.refetch();
+        
+        transactionsQuery.refetch();
         setBanner({ type: "success", message: "Transaction created from subscription" });
       } else {
         const err = await response.json().catch(() => ({}));
@@ -446,7 +417,7 @@ export default function TransactionsPage() {
     </button>
   </div>
 
-  {recurringLoading ? (
+  {recurringQuery.isLoading ? (
     <div className="flex items-center justify-center py-12">
       <Loader2 className="w-10 h-10 animate-spin text-purple-400" />
     </div>
@@ -498,9 +469,7 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {payment.notes && (
-            <p className="text-xs text-slate-400 mb-4 line-clamp-2">{payment.notes}</p>
-          )}
+         
 
           <button
             onClick={() => handleConvertToTransaction(payment.id)}
@@ -916,7 +885,7 @@ export default function TransactionsPage() {
 
           {/* Content */}
           <div className="p-6">
-            {loading ? (
+            {transactionsQuery.isLoading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-400 mb-4" />
                 <p className="text-slate-400">Loading transactions...</p>
@@ -960,9 +929,9 @@ export default function TransactionsPage() {
               filtered.sort((a, b) => {
                 switch (sortOrder) {
                   case "newest":
-                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                    return new Date(b.created_at || "").getTime() - new Date(a.created_at || "").getTime();
                   case "oldest":
-                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                    return new Date(a.created_at || "").getTime() - new Date(b.created_at || "").getTime();
                   case "highest":
                     return b.amount - a.amount;
                   case "lowest":
@@ -977,6 +946,7 @@ export default function TransactionsPage() {
                 const date = new Date(transaction.date);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                 if (!acc[monthKey]) acc[monthKey] = [];
+                //@ts-ignore
                 acc[monthKey].push(transaction);
                 return acc;
               }, {} as Record<string, Transaction[]>);

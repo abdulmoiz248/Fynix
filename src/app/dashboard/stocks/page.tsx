@@ -17,6 +17,8 @@ import {
   X,
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatsCard";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardQueries } from "@/lib/queries/dashboard";
 
 type Stock = {
   id: string;
@@ -82,11 +84,35 @@ export default function StocksPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   
-  const [stocks, setStocks] = useState<Stock[]>([]);
-  const [psxStocks, setPsxStocks] = useState<PSXStock[]>([]);
-  const [dividends, setDividends] = useState<Dividend[]>([]);
-  const [transactions, setTransactions] = useState<StockTransaction[]>([]);
-  const [fees, setFees] = useState<TradingFee[]>([]);
+ const stocksQuery = useQuery({ queryKey: ["stocks"], queryFn: dashboardQueries.stocks });
+ const stocks = stocksQuery.data?.stocks || [];
+
+  const psxQuery = useQuery({ queryKey: ["psx-stocks"], queryFn: dashboardQueries.psxStocks });
+ 
+ const psxStocks = psxQuery.data?.stocks || [];
+
+
+  const stockTxQuery = useQuery({
+     queryKey: ["stock-transactions"],
+     queryFn: dashboardQueries.stockTransactions,
+   });
+   const dividendsQuery = useQuery({
+     queryKey: ["dividends"],
+     queryFn: dashboardQueries.dividends,
+   });
+
+  const dividends = dividendsQuery.data?.dividends || [];
+
+
+   const transactions = stockTxQuery.data?.transactions || [];
+
+    const feesQuery = useQuery({
+       queryKey: ["trading-fees"],
+       queryFn: dashboardQueries.tradingFees,
+     });
+
+     const fees = feesQuery.data?.fees || [];
+
   const [feesSummary, setFeesSummary] = useState<FeesSummary>({
     broker_charges: 0,
     cgt: 0,
@@ -159,44 +185,56 @@ export default function StocksPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      loadData();
+      loadDataCash();
     }
   }, [status]);
 
-  const loadData = async () => {
+  const loadDataCash = async () => {
     try {
       setLoading(true);
-      const [stocksRes, psxRes, dividendsRes, transactionsRes, feesRes, cashRes] = await Promise.all([
-        fetch("/api/stocks"),
-        fetch("/api/psx-stocks"),
-        fetch("/api/dividends"),
-        fetch("/api/stock-transactions"),
-        fetch("/api/trading-fees"),
+      const [ cashRes] = await Promise.all([
+      
         fetch("/api/cash-account"),
       ]);
 
-      const [stocksData, psxData, dividendsData, transactionsData, feesData, cashData] = await Promise.all([
-        stocksRes.json(),
-        psxRes.json(),
-        dividendsRes.json(),
-        transactionsRes.json(),
-        feesRes.json(),
+      const [ cashData] = await Promise.all([
         cashRes.json(),
       ]);
 
-      setStocks(stocksData.stocks || []);
-      setPsxStocks(psxData.stocks || []);
-      setDividends(dividendsData.dividends || []);
-      setTransactions(transactionsData.transactions || []);
-      setFees(feesData.fees || []);
-      setFeesSummary(feesData.summary || { broker_charges: 0, cgt: 0, other_fees: 0, total_fees: 0 });
-      setCashAccount(cashData.cashAccount || { balance: 0 });
+  setCashAccount(cashData.cashAccount || { balance: 0 });
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const loadData = async () => {
+    dividendsQuery.refetch();
+    stockTxQuery.refetch();
+    feesQuery.refetch();
+    stocksQuery.refetch();
+    psxQuery.refetch();
+    await loadDataCash();
+  }
+
+  useEffect(() => {
+
+    
+      const brokerTotal = fees?.filter(f => f.fee_type === "broker_charge")
+      .reduce((sum, f) => sum + parseFloat(f.amount.toString()), 0) || 0;
+    
+    const cgtTotal = fees?.filter(f => f.fee_type === "cgt")
+      .reduce((sum, f) => sum + parseFloat(f.amount.toString()), 0) || 0;
+    
+    const otherTotal = fees?.filter(f => f.fee_type === "other")
+      .reduce((sum, f) => sum + parseFloat(f.amount.toString()), 0) || 0;
+    
+    const totalFees = brokerTotal + cgtTotal + otherTotal;
+      
+      setFeesSummary( { broker_charges: brokerTotal, cgt: cgtTotal, other_fees: otherTotal, total_fees: totalFees });
+    
+  },[fees])
 
   // Validation functions
   const validateBuyForm = () => {
@@ -315,8 +353,8 @@ export default function StocksPage() {
       });
       setBuyError("");
       setShowBuyForm(false);
-      await loadData();
-      setModalMessage("Stock purchased successfully!");
+      
+    //  setModalMessage("Stock purchased successfully!");
       setShowSuccessModal(true);
     } catch (err) {
       setModalMessage(err instanceof Error ? err.message : "Failed to buy stock");
@@ -557,11 +595,12 @@ export default function StocksPage() {
   }
 
   const totalInvested = stocks.reduce((sum, s) => sum + parseFloat(s.total_invested.toString()), 0);
-  const currentValue = stocks.reduce((sum, s) => sum + s.current_value, 0);
+  const currentValue = stocks.reduce((sum, s) => sum +( s.current_value || 0), 0);
   const totalProfitLoss = currentValue - totalInvested;
   const totalDividends = dividends.reduce((sum, d) => sum + parseFloat(d.amount.toString()), 0);
   const realizedProfitLoss = transactions
     .filter(t => t.transaction_type === "sell")
+    //@ts-ignore
     .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0);
 
   return (
@@ -1017,7 +1056,7 @@ export default function StocksPage() {
                           </div>
                           <div>
                             <p className="text-slate-500">Current Price</p>
-                            <p className="text-white font-semibold">Rs. {stock.current_price.toFixed(2)}</p>
+                            <p className="text-white font-semibold">Rs. {(stock.current_price || 0).toFixed(2)}</p>
                           </div>
                           <div>
                             <p className="text-slate-500">Invested</p>
@@ -1028,14 +1067,14 @@ export default function StocksPage() {
                       <div className="text-right ml-4">
                         <p className="text-sm text-slate-400 mb-1">Current Value</p>
                         <p className="text-2xl font-bold text-white mb-2">
-                          Rs. {stock.current_value.toFixed(2)}
+                          Rs. {(stock.current_value || 0).toFixed(2)}
                         </p>
-                        <p className={`text-lg font-bold ${stock.profit_loss >= 0 ? "text-green-400" : "text-red-400"}`}>
-                          {stock.profit_loss >= 0 ? "+" : ""}Rs. {stock.profit_loss.toFixed(2)}
+                        <p className={`text-lg font-bold ${(stock.profit_loss || 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {(stock.profit_loss || 0) >= 0 ? "+" : ""}Rs. {(stock.profit_loss || 0).toFixed(2)}
                         </p>
-                        <p className={`text-sm ${stock.profit_loss >= 0 ? "text-green-400" : "text-red-400"}`}>
-                          {stock.profit_loss >= 0 ? "+" : ""}
-                          {((stock.profit_loss / parseFloat(stock.total_invested.toString())) * 100).toFixed(2)}%
+                        <p className={`text-sm ${(stock.profit_loss || 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {(stock.profit_loss || 0) >= 0 ? "+" : ""}
+                          {(((stock.profit_loss || 0) / parseFloat(stock.total_invested.toString())) * 100).toFixed(2)}%
                         </p>
                       </div>
                     </div>
@@ -1188,8 +1227,12 @@ export default function StocksPage() {
                           <div>
                             <p className="font-bold text-white">{dividend.symbol}</p>
                             <p className="text-sm text-slate-400">{dividend.company_name}</p>
-                            {dividend.description && (
-                              <p className="text-xs text-slate-500 mt-1">{dividend.description}</p>
+                            
+                            {//@ts-ignore
+                            dividend.description && (
+                              <p className="text-xs text-slate-500 mt-1">{
+                                //@ts-ignore
+                                dividend.description}</p>
                             )}
                           </div>
                         </div>
@@ -1248,17 +1291,20 @@ export default function StocksPage() {
                       <p className={`text-lg font-bold ${
                         transactions
                           .filter(t => t.transaction_type === "sell")
+                          //@ts-ignore
                           .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
                           ? "text-green-400"
                           : "text-red-400"
                       }`}>
                         {transactions
                           .filter(t => t.transaction_type === "sell")
+                            //@ts-ignore
                           .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0) >= 0
                           ? "+"
                           : ""}
                         Rs. {transactions
                           .filter(t => t.transaction_type === "sell")
+                            //@ts-ignore
                           .reduce((sum, t) => sum + parseFloat(t.profit_loss), 0)
                           .toLocaleString(undefined, {
                             minimumFractionDigits: 2,
@@ -1308,13 +1354,18 @@ export default function StocksPage() {
                         <td className="py-3 px-4 text-white font-semibold">{txn.symbol}</td>
                         <td className="py-3 px-4 text-slate-300 text-sm">{txn.company_name}</td>
                         <td className="py-3 px-4 text-right text-white">
-                          {parseFloat(txn.shares).toLocaleString()}
+                          {  //@ts-ignore
+                          parseFloat(txn.shares).toLocaleString()}
                         </td>
                         <td className="py-3 px-4 text-right text-white">
-                          Rs. {parseFloat(txn.price_per_share).toFixed(2)}
+                          Rs. {
+                              //@ts-ignore
+                          parseFloat(txn.price_per_share).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-right text-white font-semibold">
-                          Rs. {parseFloat(txn.total_amount).toLocaleString(undefined, {
+                          Rs. {
+                              //@ts-ignore
+                          parseFloat(txn.total_amount).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                           })}
@@ -1322,14 +1373,16 @@ export default function StocksPage() {
                         <td className="py-3 px-4 text-right">
                           {txn.transaction_type === "sell" ? (
                             <span
-                              className={`font-bold ${
+                              className={`font-bold ${   //@ts-ignore
                                 parseFloat(txn.profit_loss) >= 0
                                   ? "text-green-400"
                                   : "text-red-400"
                               }`}
                             >
-                              {parseFloat(txn.profit_loss) >= 0 ? "+" : ""}
-                              Rs. {parseFloat(txn.profit_loss).toLocaleString(undefined, {
+                              {   //@ts-ignore
+                              parseFloat(txn.profit_loss) >= 0 ? "+" : ""}
+                              Rs. {  //@ts-ignore
+                              parseFloat(txn.profit_loss).toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2
                               })}
@@ -1429,7 +1482,8 @@ export default function StocksPage() {
                         </td>
                         <td className="py-3 px-4 text-slate-300 text-sm">{fee.description || "-"}</td>
                         <td className="py-3 px-4 text-right text-red-400 font-semibold">
-                          Rs. {parseFloat(fee.amount).toFixed(2)}
+                          Rs. {   //@ts-ignore 
+                          parseFloat(fee.amount).toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <button

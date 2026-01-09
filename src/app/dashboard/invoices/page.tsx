@@ -28,6 +28,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatsCard";
+import { useQuery } from "@tanstack/react-query";
+import { dashboardQueries } from "@/lib/queries/dashboard";
 
 type InvoiceItem = {
   id?: string;
@@ -60,10 +62,16 @@ type Invoice = {
 };
 
 export default function InvoicesPage() {
+
+  const invoicesQuery = useQuery({
+      queryKey: ["invoices"],
+      queryFn: dashboardQueries.invoices,
+    });
+  const invoices = invoicesQuery.data?.invoices || [];
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [loading] = useState(invoicesQuery.isLoading);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -115,24 +123,10 @@ export default function InvoicesPage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
-    } else if (status === "authenticated") {
-      fetchInvoices();
-    }
+    } 
   }, [status, router]);
 
-  const fetchInvoices = async () => {
-    try {
-      const response = await fetch("/api/invoices");
-      const data = await response.json();
-      if (response.ok) {
-        setInvoices(data.invoices);
-      }
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const generateInvoiceNumber = () => {
     const date = new Date();
@@ -250,7 +244,7 @@ export default function InvoicesPage() {
       }
 
       if (response.ok) {
-        await fetchInvoices();
+        invoicesQuery.refetch();
         handleCloseModal();
       } else {
         const error = await response.json();
@@ -282,7 +276,7 @@ export default function InvoicesPage() {
       });
 
       if (response.ok) {
-        await fetchInvoices();
+        invoicesQuery.refetch();
       }
     } catch (error) {
       console.error("Error deleting invoice:", error);
@@ -343,7 +337,7 @@ export default function InvoicesPage() {
       });
 
       if (response.ok) {
-        await fetchInvoices();
+        invoicesQuery.refetch();
         setShowEmailModal(false);
         setEmailInvoiceData(null);
         setEmailMessage("Please find attached your invoice. Thank you for your business!");
@@ -365,7 +359,7 @@ export default function InvoicesPage() {
       });
 
       if (response.ok) {
-        await fetchInvoices();
+        invoicesQuery.refetch();
       }
     } catch (error) {
       console.error("Error adding to transactions:", error);
@@ -397,7 +391,7 @@ export default function InvoicesPage() {
     pendingCount: invoices.filter(inv => inv.status === 'sent' || inv.status === 'draft').length,
   };
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -577,6 +571,7 @@ export default function InvoicesPage() {
                             {sending ? <Loader2 size={18} className="animate-spin" /> : <Mail size={18} />}
                           </button>
                           <button
+                          //@ts-ignore
                             onClick={() => handleOpenModal(invoice)}
                             className="text-slate-400 hover:text-orange-400 p-2 hover:bg-orange-500/10 rounded-lg transition"
                             title="Edit"

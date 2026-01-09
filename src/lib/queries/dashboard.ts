@@ -171,7 +171,7 @@ export const dashboardQueries = {
   budgets: () =>
     fetcher<{
       budgets: Budget[];
-      customCategories: { id: string; category_name: string }[];
+      customCategories: { id: string; category_name: string; description?: string | null }[];
       spendingByCategory: Record<string, number>;
     }>("/api/budgets"),
   recurring: () =>

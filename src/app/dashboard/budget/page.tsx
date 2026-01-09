@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { redirect, useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import {
-  ArrowLeft,
   Plus,
   DollarSign,
   TrendingDown,
@@ -19,6 +18,8 @@ import {
   X,
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatsCard";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { dashboardQueries } from "@/lib/queries/dashboard";
 
 type Budget = {
   id: string;
@@ -49,13 +50,9 @@ const DEFAULT_EXPENSE_CATEGORIES = [
 ];
 
 export default function BudgetPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>([]);
-  const [spendingByCategory, setSpendingByCategory] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { status } = useSession();
+  const queryClient = useQueryClient();
+
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -66,6 +63,18 @@ export default function BudgetPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{type: 'budget' | 'category', id: string} | null>(null);
   const [modalMessage, setModalMessage] = useState("");
+
+  const budgetsQuery = useQuery({
+    queryKey: ["budgets"],
+    queryFn: dashboardQueries.budgets,
+    enabled: status === "authenticated",
+  });
+
+  const budgets = budgetsQuery.data?.budgets || [];
+  const customCategories = budgetsQuery.data?.customCategories || [];
+  const spendingByCategory = budgetsQuery.data?.spendingByCategory || {};
+  const dataError = (budgetsQuery.error as Error) || null;
+  const loading = budgetsQuery.isLoading || budgetsQuery.isFetching;
 
   const [budgetForm, setBudgetForm] = useState({
     category: "",
@@ -78,39 +87,8 @@ export default function BudgetPage() {
     category_name: "",
     description: "",
   });
-
-  useEffect(() => {
-    if (status === "authenticated") {
-      loadData();
-    }
-  }, [status]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch("/api/budgets");
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || "Failed to load budgets");
-      }
-
-      setBudgets(data.budgets || []);
-      setCustomCategories(data.customCategories || []);
-      setSpendingByCategory(data.spendingByCategory || {});
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmitBudget = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
+  const addBudgetMutation = useMutation({
+    mutationFn: async () => {
       const response = await fetch("/api/budgets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,7 +105,9 @@ export default function BudgetPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to create budget");
       }
-
+      return data;
+    },
+    onSuccess: () => {
       setBudgetForm({
         category: "",
         budget_amount: "",
@@ -135,20 +115,17 @@ export default function BudgetPage() {
         is_custom_category: false,
       });
       setShowBudgetForm(false);
-      await loadData();
-    } catch (err) {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+    onError: (err) => {
       setModalMessage(err instanceof Error ? err.message : "Failed to add budget");
       setShowErrorModal(true);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    onSettled: () => setSubmitting(false),
+  });
 
-  const handleSubmitCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
+  const addCategoryMutation = useMutation({
+    mutationFn: async () => {
       const response = await fetch("/api/custom-categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,32 +140,31 @@ export default function BudgetPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to create category");
       }
-
+      return data;
+    },
+    onSuccess: () => {
       setCategoryForm({
         category_name: "",
         description: "",
       });
       setShowCategoryForm(false);
-      await loadData();
-    } catch (err) {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+    onError: (err) => {
       setModalMessage(err instanceof Error ? err.message : "Failed to add category");
       setShowErrorModal(true);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    onSettled: () => setSubmitting(false),
+  });
 
-  const handleUpdateBudget = async () => {
-    if (!editingBudget) return;
-    setSubmitting(true);
-
-    try {
+  const updateBudgetMutation = useMutation({
+    mutationFn: async (payload: { id: string; amount: number }) => {
       const response = await fetch("/api/budgets", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingBudget.id,
-          budget_amount: editingBudget.amount,
+          id: payload.id,
+          budget_amount: payload.amount,
         }),
       });
 
@@ -197,15 +173,91 @@ export default function BudgetPage() {
       if (!response.ok || data.error) {
         throw new Error(data.error || "Failed to update budget");
       }
-
+      return data;
+    },
+    onSuccess: () => {
       setEditingBudget(null);
-      await loadData();
-    } catch (err) {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+    onError: (err) => {
       setModalMessage(err instanceof Error ? err.message : "Failed to update budget");
       setShowErrorModal(true);
-    } finally {
+    },
+    onSettled: () => setSubmitting(false),
+  });
+
+  const deleteBudgetMutation = useMutation({
+    mutationFn: async (budgetId: string) => {
+      const response = await fetch(`/api/budgets?id=${budgetId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to delete budget");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+    onError: (err) => {
+      setModalMessage(err instanceof Error ? err.message : "Failed to delete budget");
+      setShowErrorModal(true);
+    },
+    onSettled: () => {
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
       setSubmitting(false);
-    }
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: string) => {
+      const response = await fetch(`/api/custom-categories?id=${categoryId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to delete category");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+    },
+    onError: (err) => {
+      setModalMessage(err instanceof Error ? err.message : "Failed to delete category");
+      setShowErrorModal(true);
+    },
+    onSettled: () => {
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+      setSubmitting(false);
+    },
+  });
+
+  const deletePending = deleteBudgetMutation.isPending || deleteCategoryMutation.isPending;
+
+  const handleSubmitBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    addBudgetMutation.mutate();
+  };
+
+  const handleSubmitCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    addCategoryMutation.mutate();
+  };
+
+  const handleUpdateBudget = async () => {
+    if (!editingBudget) return;
+    setSubmitting(true);
+    updateBudgetMutation.mutate({ id: editingBudget.id, amount: editingBudget.amount });
   };
 
   const handleDeleteBudget = async (budgetId: string) => {
@@ -215,29 +267,12 @@ export default function BudgetPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setSubmitting(true);
 
-    try {
-      const endpoint = deleteTarget.type === 'budget' 
-        ? `/api/budgets?id=${deleteTarget.id}`
-        : `/api/custom-categories?id=${deleteTarget.id}`;
-      
-      const response = await fetch(endpoint, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Failed to delete ${deleteTarget.type}`);
-      }
-
-      await loadData();
-    } catch (err) {
-      setModalMessage(err instanceof Error ? err.message : `Failed to delete ${deleteTarget?.type}`);
-      setShowErrorModal(true);
-    } finally {
-      setShowDeleteConfirm(false);
-      setDeleteTarget(null);
+    if (deleteTarget.type === 'budget') {
+      deleteBudgetMutation.mutate(deleteTarget.id);
+    } else {
+      deleteCategoryMutation.mutate(deleteTarget.id);
     }
   };
 
@@ -375,8 +410,8 @@ export default function BudgetPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
             </div>
-          ) : error ? (
-            <p className="text-red-400 text-center py-8">{error}</p>
+          ) : dataError ? (
+            <p className="text-red-400 text-center py-8">{dataError.message}</p>
           ) : budgets.length === 0 ? (
             <p className="text-slate-400 text-center py-8">
               No budgets yet. Add your first budget to start tracking!
@@ -387,6 +422,7 @@ export default function BudgetPage() {
                 const spent = spendingByCategory[budget.category] || 0;
                 const remaining = budget.budget_amount - spent;
                 const percentage = Math.min((spent / budget.budget_amount) * 100, 100);
+                //@ts-ignore
                 const { status, color, icon: Icon } = getBudgetStatus(budget);
 
                 return (
@@ -735,9 +771,10 @@ export default function BudgetPage() {
               </button>
               <button
                 onClick={confirmDelete}
+                disabled={deletePending}
                 className="flex-1 py-3 px-4 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-all duration-200 hover:shadow-lg hover:shadow-red-500/30"
               >
-                Delete
+                {deletePending ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
