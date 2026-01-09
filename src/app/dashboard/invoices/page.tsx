@@ -403,7 +403,7 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className="min-h-screen pb-12">
+    <div className="min-h-screen  pb-12">
       {/* Stats Section */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -435,6 +435,11 @@ export default function InvoicesPage() {
             delta={invoices.filter(inv => inv.status === 'overdue').length > 0 ? "Action needed" : "All clear"}
             tone={invoices.filter(inv => inv.status === 'overdue').length > 0 ? "down" : "neutral"}
           />
+        </div>
+
+           {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-linear-to-r from-transparent via-cyan-600 to-transparent"></div>
         </div>
 
         {/* Action Buttons Section */}
@@ -562,14 +567,14 @@ export default function InvoicesPage() {
                           >
                             <Download size={18} />
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => handleSendEmail(invoice.id, invoice.client_email)}
                             disabled={sending}
                             className="text-slate-400 hover:text-green-400 p-2 hover:bg-green-500/10 rounded-lg transition disabled:opacity-50"
                             title="Send Email"
                           >
                             {sending ? <Loader2 size={18} className="animate-spin" /> : <Mail size={18} />}
-                          </button>
+                          </button> */}
                           <button
                           //@ts-ignore
                             onClick={() => handleOpenModal(invoice)}

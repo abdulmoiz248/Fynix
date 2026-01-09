@@ -351,7 +351,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-black">
     
 
       <main className="max-w-5xl mx-auto px-6 py-8">

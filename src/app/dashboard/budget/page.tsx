@@ -317,7 +317,7 @@ export default function BudgetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-black">
     
 
       <main className="max-w-6xl mx-auto px-6 py-8">
@@ -376,6 +376,10 @@ export default function BudgetPage() {
 
       
 
+   {/* Decorative Separator */}
+        <div className="flex items-center justify-center my-8">
+          <div className="flex-1 h-px bg-linear-to-r from-transparent via-cyan-600 to-transparent"></div>
+        </div>
         {/* Custom Categories List */}
         {customCategories.length > 0 && (
           <div className="mb-8 p-6 rounded-lg border border-slate-700/50 bg-slate-800/30 backdrop-blur-sm">
